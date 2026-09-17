@@ -1,0 +1,98 @@
+/**
+ * Reven Tailwind v4 theme.
+ * Source of truth: Reven Brand System Guidelines v1.0 (July 2026).
+ * Every app imports this AFTER `@import "tailwindcss";` in its global stylesheet.
+ *
+ * Rule from the brand doc (§06): blue (--color-accent) is the only saturated
+ * hue in the system. Everything else is navy, cream, or gray. Do not add new
+ * saturated colors here — extend the system in the brand doc first.
+ */
+
+@theme {
+  /* ---- Fonts (§07) ---- */
+  --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-label: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  /* Arabic pairings (conservative addition — not specified in the brand
+     file, see docs/brand/DECISIONS.md) are applied by the app's own
+     `html[lang="ar"]` rule, which redefines these same three variables with
+     complete, self-contained font stacks — never as a fallback chain
+     through these English ones, which would make the two definitions
+     circular the moment the Arabic rule takes over. */
+
+  /* ---- Core palette (§06) ---- */
+  --color-ink: #0f1629; /* primary text & logo */
+  --color-navy: #0f1629; /* same hue, used as the deep-navy surface */
+  --color-canvas: #fbfaf7; /* default app background — never pure white */
+  --color-card: #ffffff; /* elevated surfaces on canvas */
+
+  --color-accent: #2c5bff; /* the only saturated hue — signal */
+  --color-accent-deep: #1e47e0; /* hover/pressed */
+  --color-accent-pale-1: #8da4ff;
+  --color-accent-pale-2: #aec5ff;
+
+  --color-muted-body: #5b6172;
+  --color-muted-caption: #6b7180;
+  --color-muted-tertiary: #8a8f9c;
+  --color-muted-micro: #9aa3b5;
+
+  --color-status-caution: #c98a1b;
+  --color-status-alert: #c0392b;
+  --color-status-positive: #1f8a5b;
+
+  /* ---- Radii — institutional, not playful (§01 brand belief) ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 9999px;
+
+  /* ---- Shadows — subtle, trustworthy ---- */
+  --shadow-xs: 0 1px 2px rgb(15 22 41 / 0.06);
+  --shadow-sm: 0 1px 2px rgb(15 22 41 / 0.06), 0 1px 1px rgb(15 22 41 / 0.04);
+  --shadow-md: 0 8px 24px rgb(15 22 41 / 0.1), 0 2px 6px rgb(15 22 41 / 0.06);
+  --shadow-lg: 0 16px 48px rgb(15 22 41 / 0.16), 0 4px 12px rgb(15 22 41 / 0.08);
+
+  /* ---- Letter tracking (§07) ---- */
+  --tracking-display: -0.02em;
+  --tracking-display-tight: -0.035em;
+  --tracking-label: 0.08em;
+  --tracking-label-wide: 0.24em;
+}
+
+/* ---- Runtime tokens that aren't Tailwind theme keys ---- */
+:root {
+  --surface-radial-from: #f0eaff;
+  --surface-radial-to: var(--color-canvas);
+  --surface-navy-gradient-from: #1f1740;
+  --surface-navy-gradient-to: var(--color-navy);
+
+  --border-subtle: rgb(15 22 41 / 0.08);
+  --border-default: rgb(15 22 41 / 0.12);
+  --border-strong: rgb(15 22 41 / 0.2);
+  --border-on-navy: rgb(255 255 255 / 0.12);
+  --border-on-navy-strong: rgb(255 255 255 / 0.24);
+
+  --ring-accent: rgb(44 91 255 / 0.45);
+
+  --motif-stroke-width: 1.2px;
+  --motif-opacity-min: 0.15;
+  --motif-opacity-max: 0.55;
+
+  /* App shell metrics — adapted from the deck-layout rhythm (§08) for product
+     density. The brand file's 104px/78-84px margins are calibrated for
+     full-bleed slides; scaled down here for a data-dense app shell.
+     See docs/brand/DECISIONS.md. */
+  --shell-sidebar-width: 280px;
+  --shell-sidebar-collapsed-width: 72px;
+  --shell-topbar-height: 64px;
+  --shell-content-padding-desktop: 32px;
+  --shell-content-padding-mobile: 16px;
+}
+
+/* RTL/LTR variants for the rare cases logical properties can't express
+   (e.g. mirroring a directional chevron icon). Prefer the logical spacing,
+   inset and radius utilities (margin/padding/inset "start"/"end", rounded
+   "s"/"e") everywhere else — those flip automatically with the `dir`
+   attribute and need no variant at all. */
+@custom-variant rtl (&:where([dir='rtl'], [dir='rtl'] *));
+@custom-variant ltr (&:where([dir='ltr'], [dir='ltr'] *));
