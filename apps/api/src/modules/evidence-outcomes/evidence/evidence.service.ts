@@ -1,6 +1,4 @@
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import {
   BadRequestException,
   Injectable,
@@ -8,7 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { prisma, type Evidence } from '@revn/db';
-import { ALLOWED_EVIDENCE_MIME_TYPES, EVIDENCE_STORAGE_ROOT } from '../evidence-outcomes.constants';
+import { ALLOWED_EVIDENCE_MIME_TYPES } from '../evidence-outcomes.constants';
 import { recordAuditEvent } from '../../audit-operations/audit.service';
 
 export interface CreateEvidenceInput {
@@ -130,23 +128,27 @@ export class EvidenceService {
     }
 
     const checksum = createHash('sha256').update(file.buffer).digest('hex');
-    const dir = join(EVIDENCE_STORAGE_ROOT, tenantId);
-    await mkdir(dir, { recursive: true });
     const storageKey = `${evidenceId}-${Date.now()}`;
-    await writeFile(join(dir, storageKey), file.buffer);
 
-    const updated = await prisma.evidence.update({
-      where: { id: evidenceId, tenantId },
-      data: {
-        storageKey,
-        fileName: file.filename,
-        mimeType: file.mimetype,
-        sizeBytes: file.buffer.byteLength,
-        checksum,
-        updatedById: actingUserId,
-        version: { increment: 1 },
-      },
-    });
+    // One transaction: the bytes and the pointer to them land together, so
+    // an Evidence row never names a storageKey with no file behind it.
+    const [, updated] = await prisma.$transaction([
+      prisma.evidenceFile.create({
+        data: { storageKey, tenantId, content: new Uint8Array(file.buffer) },
+      }),
+      prisma.evidence.update({
+        where: { id: evidenceId, tenantId },
+        data: {
+          storageKey,
+          fileName: file.filename,
+          mimeType: file.mimetype,
+          sizeBytes: file.buffer.byteLength,
+          checksum,
+          updatedById: actingUserId,
+          version: { increment: 1 },
+        },
+      }),
+    ]);
     await recordAuditEvent(tenantId, {
       actorId: actingUserId,
       action: 'evidence_file_uploaded',

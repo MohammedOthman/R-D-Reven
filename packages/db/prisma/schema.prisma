@@ -855,8 +855,9 @@ model Evidence {
 
   // EVD-02: "upload or reference" — source is always a free-text/URL
   // reference; storageKey/fileName/mimeType/sizeBytes/checksum are set only
-  // when an actual file was uploaded (local-disk stand-in for the PRD's
-  // "files live in object storage" principle — see docs/DECISIONS.md).
+  // when an actual file was uploaded; the bytes live in EvidenceFile under
+  // the same storageKey (Postgres stand-in for the PRD's "files live in
+  // object storage" principle — see docs/DECISIONS.md).
   source         String
   storageKey     String?
   fileName       String?
@@ -885,6 +886,22 @@ model Evidence {
   @@index([contributionId])
   @@index([outcomeId])
   @@map("evidence")
+}
+
+// Material file bytes for Evidence, keyed by Evidence.storageKey. Kept in
+// Postgres rather than on the API container's disk: the container is
+// replaced on every deploy, so disk-stored files would vanish. A separate
+// table keeps the bytes out of every Evidence query and lets an object
+// store replace it later without touching the Evidence model. Rows are
+// never updated — EVD-04 replacement writes a new key.
+model EvidenceFile {
+  storageKey String   @id
+  tenantId   String
+  content    Bytes
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("evidence_files")
 }
 
 // Table 13's literal chain (Draft → Submitted → Verification Required →
