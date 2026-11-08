@@ -1,8 +1,9 @@
 import 'server-only';
+import { SERVER_API_URL } from '@/src/lib/api/server-url';
 import { cookies } from 'next/headers';
 import type { CommercialRule } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = SERVER_API_URL;
 
 async function forwardedGet<T>(path: string): Promise<T | null> {
   const cookieStore = await cookies();

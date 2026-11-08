@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
+import { PilotService } from './auth/pilot.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { UsersService } from './users/users.service';
 import { MailerService } from './mail/mailer.service';
@@ -31,6 +32,7 @@ import { ACCESS_TOKEN_TTL_SECONDS } from './auth/auth.constants';
   controllers: [AuthController, TenantsController, MembersController, InvitationsController],
   providers: [
     AuthService,
+    PilotService,
     UsersService,
     MailerService,
     TenantsService,

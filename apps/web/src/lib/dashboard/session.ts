@@ -1,8 +1,9 @@
 import 'server-only';
+import { SERVER_API_URL } from '@/src/lib/api/server-url';
 import { cookies } from 'next/headers';
 import type { DashboardResponse } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = SERVER_API_URL;
 
 export async function getDashboard(tenantId: string): Promise<DashboardResponse | null> {
   const cookieStore = await cookies();

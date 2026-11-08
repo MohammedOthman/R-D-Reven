@@ -1,8 +1,9 @@
 import 'server-only';
+import { SERVER_API_URL } from '@/src/lib/api/server-url';
 import { cookies } from 'next/headers';
 import type { TenantWithRole } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = SERVER_API_URL;
 
 /** Same forward-the-cookie pattern as `auth/session.ts`'s `getCurrentUser` — one implementation of "what does this session actually have access to," in the API. */
 export async function getCurrentTenant(): Promise<TenantWithRole> {

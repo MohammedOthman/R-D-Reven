@@ -14,6 +14,13 @@ const envSchema = z
     // fine since both apps are on localhost).
     COOKIE_DOMAIN: z.string().optional(),
     WEB_ORIGIN: z.string().url().default('http://localhost:3000'),
+    // Pilot mode: "true" only on the separate pilot app, which has its own
+    // database. Visitors without a session are signed in as one shared
+    // pilot Owner (see PilotService). Never set this on production.
+    PILOT_AUTO_LOGIN: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
     // Transactional email (password reset, invitations). All three set: the
     // API POSTs { from, to, subject, html, text } to MAIL_API_URL with
     // "Authorization: Bearer MAIL_API_KEY" (Resend's /emails API takes this

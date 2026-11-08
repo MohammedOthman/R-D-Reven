@@ -1,8 +1,9 @@
 import 'server-only';
+import { SERVER_API_URL } from '@/src/lib/api/server-url';
 import { cookies } from 'next/headers';
 import type { Agreement } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = SERVER_API_URL;
 
 async function forwardedGet<T>(path: string): Promise<T | null> {
   const cookieStore = await cookies();
@@ -22,7 +23,10 @@ export async function getAgreements(tenantId: string): Promise<Agreement[]> {
   return result?.agreements ?? [];
 }
 
-export async function getAgreement(tenantId: string, agreementId: string): Promise<Agreement | null> {
+export async function getAgreement(
+  tenantId: string,
+  agreementId: string,
+): Promise<Agreement | null> {
   const result = await forwardedGet<{ agreement: Agreement }>(
     `/tenants/${tenantId}/agreements/${agreementId}`,
   );

@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Post,
   Req,
@@ -14,6 +15,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service';
+import { PilotService } from './pilot.service';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { UsersService } from '../users/users.service';
@@ -38,7 +40,23 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService<Env, true>,
+    private readonly pilotService: PilotService,
   ) {}
+
+  @Public()
+  @Post('pilot-session')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Pilot mode only: sign in as the shared pilot user. 404 unless PILOT_AUTO_LOGIN=true.',
+  })
+  async pilotSession(@Res({ passthrough: true }) reply: FastifyReply) {
+    if (!this.configService.get('PILOT_AUTO_LOGIN', { infer: true })) {
+      throw new NotFoundException();
+    }
+    const { user, tokens } = await this.pilotService.startPilotSession();
+    setAuthCookies(reply, tokens, this.cookieOptions());
+    return { user: toPublicUser(user) };
+  }
 
   private cookieOptions(): CookieOptions {
     return {

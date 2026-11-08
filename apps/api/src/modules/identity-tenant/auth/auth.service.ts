@@ -217,6 +217,11 @@ export class AuthService {
     return { user, tokens };
   }
 
+  /** Opens a session for an already-authenticated user (pilot mode's shared account). */
+  startSession(user: User): Promise<IssuedTokens> {
+    return this.issueTokens(user);
+  }
+
   private async issueTokens(user: User): Promise<IssuedTokens> {
     const payload: JwtPayload = { sub: user.id, email: user.email };
     const accessToken = await this.jwtService.signAsync(payload, {

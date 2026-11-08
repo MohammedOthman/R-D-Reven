@@ -1,8 +1,9 @@
 import 'server-only';
+import { SERVER_API_URL } from '@/src/lib/api/server-url';
 import { cookies } from 'next/headers';
 import type { Partner } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = SERVER_API_URL;
 
 /** Only called after the page has already confirmed read access via `getCurrentTenant()`'s role. */
 export async function getPartners(tenantId: string): Promise<Partner[]> {
