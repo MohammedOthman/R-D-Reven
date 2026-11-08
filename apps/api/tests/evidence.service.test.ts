@@ -11,8 +11,10 @@ const evidenceFindFirst = vi.fn();
 const evidenceFindUnique = vi.fn();
 const evidenceCreate = vi.fn();
 const evidenceUpdate = vi.fn();
-const mkdir = vi.fn().mockResolvedValue(undefined);
-const writeFile = vi.fn().mockResolvedValue(undefined);
+const evidenceFileCreate = vi.fn();
+// Stands in for prisma.$transaction([...]): the service passes the already-
+// built operations, so resolving them in order matches Prisma's contract.
+const transaction = vi.fn((ops: Promise<unknown>[]) => Promise.all(ops));
 
 vi.mock('@revn/db', () => ({
   prisma: {
@@ -24,13 +26,10 @@ vi.mock('@revn/db', () => ({
       create: (...args: unknown[]) => evidenceCreate(...args),
       update: (...args: unknown[]) => evidenceUpdate(...args),
     },
+    evidenceFile: { create: (...args: unknown[]) => evidenceFileCreate(...args) },
+    $transaction: (ops: Promise<unknown>[]) => transaction(ops),
   },
   Prisma: { PrismaClientKnownRequestError: class extends Error {} },
-}));
-
-vi.mock('node:fs/promises', () => ({
-  mkdir: (...args: unknown[]) => mkdir(...args),
-  writeFile: (...args: unknown[]) => writeFile(...args),
 }));
 
 const { EvidenceService } =
@@ -103,8 +102,9 @@ describe('EvidenceService.attachFile', () => {
   beforeEach(() => {
     evidenceFindFirst.mockReset();
     evidenceUpdate.mockReset();
-    mkdir.mockClear();
-    writeFile.mockClear();
+    evidenceFileCreate.mockReset();
+    evidenceFileCreate.mockResolvedValue({});
+    transaction.mockClear();
   });
 
   it('rejects when the evidence already has a file (EVD-04)', async () => {
@@ -119,7 +119,7 @@ describe('EvidenceService.attachFile', () => {
         'user-1',
       ),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
-    expect(writeFile).not.toHaveBeenCalled();
+    expect(evidenceFileCreate).not.toHaveBeenCalled();
   });
 
   it('rejects an unsupported mime type', async () => {
@@ -134,7 +134,7 @@ describe('EvidenceService.attachFile', () => {
         'user-1',
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(writeFile).not.toHaveBeenCalled();
+    expect(evidenceFileCreate).not.toHaveBeenCalled();
   });
 
   it('stores the file and computes a checksum server-side', async () => {
@@ -149,7 +149,14 @@ describe('EvidenceService.attachFile', () => {
       'user-1',
     );
 
-    expect(writeFile).toHaveBeenCalled();
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(evidenceFileCreate).toHaveBeenCalledWith({
+      data: {
+        storageKey: expect.stringMatching(/^evidence-1-\d+$/),
+        tenantId: 'tenant-1',
+        content: new Uint8Array(Buffer.from('hello')),
+      },
+    });
     expect(evidenceUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

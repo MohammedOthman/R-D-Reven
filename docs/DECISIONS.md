@@ -736,18 +736,22 @@ Guest=Contribute if granted`. Two things stand out against precedent:
   a manager gets an immediate, actionable error ("must be an owner, admin
   or reviewer") instead of successfully submitting to someone who could
   never legally verify it.
-- **File storage is local disk, not real object storage.** The PRD's own
-  architectural principle ("Files live in object storage. Database records
-  hold metadata, classification, checksum and storage pointer—not binary
-  content") is honored at the _shape_ level — `Evidence` stores only
+- **File bytes live in a separate Postgres table, not real object
+  storage.** The PRD's own architectural principle ("Files live in object
+  storage. Database records hold metadata, classification, checksum and
+  storage pointer—not binary content") is honored at the _shape_ level —
+  `Evidence` stores only
   `storageKey`/`fileName`/`mimeType`/`sizeBytes`/`checksum`, never binary
-  content, in the database — but the storage backend itself is
-  `apps/api/var/evidence-storage/<tenantId>/<storageKey>` on local disk
-  (gitignored), the same proportionate MVP substitution local Postgres
-  already is for a managed database elsewhere in this codebase. No object
-  storage integration (S3 or equivalent) exists anywhere in this codebase
-  yet — adding one is out of scope for an application-layer feature and
-  would be its own infrastructure decision. EVD-02's "malware, type and
+  content — while the bytes sit in `EvidenceFile` (`evidence_files`), keyed
+  by the same `storageKey` and written in the same transaction. The first
+  version wrote to local disk (`apps/api/var/evidence-storage/`), which lost
+  every file on deploy once the app ran on CranL, where each deploy
+  replaces the container. CranL's S3 buckets were rejected for now because
+  each one is fronted by a public CDN address, a poor fit for
+  INTERNAL-classified partner evidence; Postgres keeps the bytes on CranL's
+  private network and inside database backups. Swapping in a private
+  object store later only means changing how `EvidenceService.attachFile`
+  writes `EvidenceFile`. EVD-02's "malware, type and
   access checks pass" gate is scoped to type (an allowlist of common
   document/image MIME types) and size (25 MB, `request.file()`'s
   per-call `limits` override, mirroring how CSV Import sets its own
