@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+@import '@revn/config/tailwind/theme.css';
+
+/* Tailwind v4 scans this app's own files automatically; packages consumed as
+   source (not pre-built) need an explicit @source so their utility classes
+   aren't purged. */
+@source '../../../packages/ui/src';
+
+/* Wire the brand's named font roles to the actual self-hosted font files
+   loaded via next/font in src/lib/fonts.ts. Each block gives its own
+   complete fallback chain — the Arabic block must NOT fall back through the
+   English variable names below, or redefining the same names in both
+   places creates a circular reference that browsers silently invalidate. */
+:root {
+  --font-display: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-label: var(--font-ibm-plex-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+html[lang='ar'] {
+  --font-display: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-ibm-plex-sans-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-label: var(--font-ibm-plex-sans-arabic), ui-monospace, SFMono-Regular, monospace;
+
+  /* The brand doc's letter-spacing values (§07) are tuned for Sora/IBM Plex
+     Mono, both Latin typefaces. Arabic is a cursive, connected script —
+     any non-zero tracking (especially the negative display value) breaks
+     letterforms apart instead of just spacing them, so it's reset to normal
+     here rather than inherited by Cairo/IBM Plex Sans Arabic. */
+  --tracking-display: normal;
+  --tracking-display-tight: normal;
+  --tracking-label: normal;
+  --tracking-label-wide: normal;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}

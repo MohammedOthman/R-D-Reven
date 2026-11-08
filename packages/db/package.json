@@ -1,0 +1,32 @@
+{
+  "name": "@revn/db",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Prisma schema, migrations and database client for Reven.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "db:generate": "dotenv -e .env -- prisma generate",
+    "db:migrate": "dotenv -e .env -- prisma migrate dev",
+    "db:migrate:deploy": "dotenv -e .env -- prisma migrate deploy",
+    "db:studio": "dotenv -e .env -- prisma studio",
+    "db:reset": "dotenv -e .env -- prisma migrate reset",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "@prisma/client-runtime-utils": "^7.10.0",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@revn/config": "workspace:*",
+    "@types/pg": "^8.23.1",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^9.39.5",
+    "prisma": "^7.10.0",
+    "typescript": "^5.9.3"
+  }
+}

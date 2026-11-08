@@ -1,0 +1,20 @@
+import 'server-only';
+import { cookies } from 'next/headers';
+import type { Partner } from './types';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+/** Only called after the page has already confirmed read access via `getCurrentTenant()`'s role. */
+export async function getPartners(tenantId: string): Promise<Partner[]> {
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
+  if (!cookieHeader) return [];
+
+  const res = await fetch(`${API_URL}/tenants/${tenantId}/partners`, {
+    headers: { cookie: cookieHeader },
+    cache: 'no-store',
+  });
+  if (!res.ok) return [];
+  const { partners } = (await res.json()) as { partners: Partner[] };
+  return partners;
+}

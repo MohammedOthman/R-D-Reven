@@ -1,0 +1,1212 @@
+// Reven — database schema.
+//
+// See PRD §4.2 and §10.3 module boundaries for the full domain model. Tables
+// land incrementally, feature by feature — see docs/ROADMAP.md for order.
+// Every future tenant-owned table must carry id (uuid), tenant_id, created_at/by,
+// updated_at/by, version and lifecycle status per PRD §4.1 data modeling rules.
+//
+// Feature: Authentication.
+// `User` is deliberately NOT tenant-owned — PRD's entity model treats
+// identity and tenant-membership as separate concerns (a person's account vs.
+// their role inside a given tenant).
+//
+// Feature: Tenant / Organization.
+// `Membership` is the join between `User` and `Tenant`, carrying the role.
+// One user can in principle hold memberships in more than one tenant — the
+// schema doesn't forbid it — but this phase only builds the single-tenant
+// path (sign up → no membership → create one tenant → done); a tenant
+// switcher for a user with several memberships is future work, not
+// something this phase's UI handles.
+//
+// Feature: Roles and Permissions / RBAC (this migration).
+// `MembershipRole` grows from a placeholder OWNER/MEMBER to the six tiers in
+// PRD §2.3's MVP capability matrix (Owner, Admin, Executive, Manager,
+// Reviewer, Guest — Owner and Admin share the "Admin" column there, split
+// out because ADM-03's "prevent removal of the final active Tenant Owner"
+// invariant needs Owner to be a real, distinct value). Existing MEMBER rows
+// migrate to MANAGER — the closest analog to "a regular contributor" in the
+// old two-tier model. `Invitation` implements ADM-02 (invite members) for
+// the one path this phase builds: a brand-new email with no existing User.
+// An email that already has an account gets a conflict on invite — merging
+// an invite into an existing account is out of scope for this phase.
+//
+// Feature: Partner (this migration). First table in the `portfolio` module
+// (PRD §10.3) — Phase 2 of docs/ROADMAP.md, ahead of Partnership. Also the
+// first table where every PRD §4.1 data-modeling rule actually applies:
+// `User`, `Tenant`, `Membership` and `Invitation` each had a reason to skip
+// one or more (see their own comments above). `identifiers` is a free-form
+// JSON map rather than named columns — PRD §4.2 says only "identifiers"
+// (plural), naming no specific scheme, and inventing one (VAT number? DUNS?
+// a platform-specific ID?) isn't this phase's call to make; CSV import
+// (Roadmap Phase 2, item 6) is what will actually populate it from a real
+// source system. `segment` is free text for the same reason — a controlled
+// taxonomy is ADM-05 (P1, not built).
+//
+// Feature: Partnership (this migration). PRD §4.3's Table 13 gives its state
+// machine as one arrow-chain: Prospect → Qualified → Planning → Active → At
+// Risk → Paused → Terminated → Archived, "cannot activate without owner,
+// motion, objective and cadence." Table 67 adds per-field gating: owner_id
+// required starting at Qualified (earlier than Active), health and
+// next_review_at required starting at Active. None of the PRD's per-object
+// tables draw a reverse arrow for ANY object — including ones where recovery
+// is obviously required (Initiative's Blocked, Action's Blocked) — so a
+// literal forward-only reading would make a governed relationship unable to
+// recover from At Risk, which defeats the point of tracking health at all.
+// `PartnershipsService.canTransition` therefore implements: strict forward
+// order Prospect→Qualified→Planning→Active (no skipping, since `stage`'s own
+// validation rule is "valid state transition only"); Active⇄AtRisk⇄Paused as
+// a recoverable trio; Terminated reachable from any pre-Archived stage
+// (ending a relationship shouldn't require walking every intermediate stage
+// first); Archived only from Terminated, and terminal. This is a documented
+// interpretation, not literal PRD text — see docs/DECISIONS.md.
+// `motion` and `cadence` are free text for the same reason `segment` is on
+// Partner — ADM-05's taxonomy is P1, not built. `health` is a plain
+// three-value enum, not the "Enum + derived, approved values, override
+// reason" formula Table 67 describes — that derivation is PORT-05 (P1,
+// explicitly deferred). PORT-03 also names a `sponsor` alongside `owner` as
+// a creation-time field; it's optional and ungated (no table gates
+// activation or any stage on it), unlike `owner` which Table 67 gates from
+// Qualified onward. `partnerId`'s own `@unique` (a Partner belongs to one
+// tenant already, so this is tenant-safe without a compound key) encodes
+// INV-001 ("a relationship belongs to exactly one tenant and one partner;
+// duplicate active relationships require explicit program distinction") —
+// Program doesn't exist yet, so no distinguishing mechanism exists either,
+// meaning no duplicates at all for now.
+//
+// Feature: CSV Import and Partnership Activation (this migration). PRD
+// IMP-02 requires "create staging batch; do not write domain objects during
+// upload or mapping" — Table 12's entity list names no "staging batch"
+// entity, and the one entity shaped like observable batch state (`Sync Job`
+// — connection, cursor, counts, status, retry) is explicitly connector-
+// shaped (its own `connection` field), not a fit for a plain file upload.
+// `ImportBatch`/`ImportRow` are a direct, literal implementation of IMP-02's
+// requirement text rather than an invented entity. `ImportRow.rawData`
+// (the full source row as JSON) plus its `batchId` is what satisfies FLOW-A's
+// acceptance criterion "every imported value retains source batch, row and
+// source-column provenance" — a per-field provenance table (IMP-10's fuller
+// ask, P1) is deferred; row-level is enough to answer "what did this come
+// from." `matchedPartnerId`/`committedPartnerId`/`committedPartnershipId`
+// are plain `String?` pointers, not Prisma `@relation`s — this is staging/
+// audit-trail metadata about a pipeline run, not core relational data
+// depended on for referential integrity the way `Partnership.partnerId` is.
+// See docs/DECISIONS.md for the full scope cut (CSV only, not XLSX; file
+// upload only, not a CRM connector; ad-hoc mapping only, not IMP-03's
+// reusable saved tenant mapping; no rollback, IMP-09).
+//
+// Feature: Initiative, Milestone, Action, and Blocker (this migration).
+// First table in the `execution` module (PRD §10.3) — Phase 3 of
+// docs/ROADMAP.md. PRD Table 12 names only `Initiative` and `Action` as
+// top-level entities; `Milestone` is INIT-02's child object of Initiative
+// ("create ordered milestones"), not a §10.3 module boundary of its own.
+// `Blocker` in the roadmap's own title is Action's own `BLOCKED` status
+// plus a reason field (INIT-04: "update action status, due date, blocker,
+// completion note" lists "blocker" as one of several Action FIELDS, and
+// Table 13's Action state machine has `Blocked` as one of Action's own
+// stages) — not a fourth entity. `Initiative.stage` and `Action.status`
+// both allow a recovery move (Active⇄Blocked, In Progress⇄Blocked) that
+// Table 13's own arrow-chain never draws, for the same reason documented
+// on `Partnership` above. `Initiative`'s completion gate is exactly PRD
+// §5.2 Golden Workflow B's stated acceptance criterion ("cannot complete
+// with unresolved blocking actions unless an authorized override is
+// documented") plus INIT-07's "remaining-work treatment" — completing
+// requires `completionDisposition` (a scoped-down stand-in for INIT-07's
+// "outcome disposition," since the real `Outcome` entity with its
+// verification workflow is Phase 4, not built yet) and
+// `remainingActionsTreatment`; a still-`BLOCKED` Action blocks completion
+// unless `completionOverrideReason` is given (T-007, an audited override —
+// only the latest is kept, same simplification as
+// `Partnership.lastTransitionReason`). `successMeasure` is unshaped JSON
+// for the same reason `Partner.identifiers` is — Table 67 says "Structured/
+// text" without naming a schema. `Action.assigneeUserId`/
+// `assigneeExternalName` are both optional but the service requires at
+// least one — INIT-03/Table 67 explicitly allow "members or referenced
+// counterpart owners," and no external-contact entity exists to link to
+// instead. See docs/DECISIONS.md for the full scope cut (notifications,
+// overdue/timeline detection, bulk update, cloning, and evidence-mandatory-
+// by-action-type are all deferred).
+//
+// Feature: Review, Decision, and Follow-up Actions (this migration). Second
+// `execution`-module feature — PRD §5.2 Golden Workflow B's middle steps and
+// S08/S09. `Action.initiativeId` is now optional and `Action.reviewId` is
+// added (both optional, service requires at least one) — a "follow-up
+// action" recorded during a Review (FLOW-B: "review owner records decisions
+// and follow-ups") need not belong to any single Initiative, so the
+// existing Action entity is reused wholesale rather than inventing a
+// separate "Follow-up Action" entity, the same reasoning that kept
+// "Blocker" from becoming its own table. `Review`'s state machine
+// (Scheduled → In Preparation → In Progress → Completed → Reopened, Table
+// 13) is taken literally with no PRD-undocumented recovery move this time —
+// unlike Partnership/Initiative/Action, nothing in the PRD suggests a
+// "stuck" state a review needs to recover from, so the path stays strictly
+// linear. `Reopened` is a real Table-13 state kept in the enum, but no
+// transition reaches it yet since REV-06 ("reopen as revision") is P1.
+// `Review.snapshotId` is a server-generated random id distinct from the
+// review's own id, captured together with `snapshot`/`snapshotAt` on the
+// Scheduled → In Preparation transition — Table 67 calls the snapshot "an
+// immutable source-version set" with its own unique identifier, not just an
+// embedded blob. `Decision.type` is free text (no ADM-05 taxonomy exists,
+// same as `Partnership.motion`). `Decision.requiresApproval` +
+// `status`/`approvedById` implement DEC-02's "route restricted decision for
+// approval and enforce separation of duties" — INV-004 (approver cannot be
+// the decision's own creator) is enforced in the service. See
+// docs/DECISIONS.md for the full scope cut (REV-03 agenda items/templates,
+// REV-06 reopen-as-revision, DEC-03 supersede — all P1/P2, deferred) and
+// the RBAC reasoning (Decision's own matrix row makes Executive's "Approve"
+// real for the first time, unlike Partnership/Import where it stayed
+// read-only; Review borrows "Initiatives/actions" since no dedicated row
+// exists for it).
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+// Connection URL lives in prisma.config.ts (Prisma 7) for Migrate/Studio;
+// the runtime client gets its own connection via a driver adapter (src/index.ts).
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+model User {
+  id              String     @id @default(uuid())
+  email           String     @unique
+  passwordHash    String
+  name            String
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  refreshTokens                  RefreshToken[]
+  passwordResetTokens            PasswordResetToken[]
+  memberships                    Membership[]
+  sentInvitations                Invitation[]
+  partnersCreated                Partner[]               @relation("PartnerCreatedBy")
+  partnersUpdated                Partner[]               @relation("PartnerUpdatedBy")
+  partnershipsOwned              Partnership[]           @relation("PartnershipOwner")
+  partnershipsSponsored          Partnership[]           @relation("PartnershipSponsor")
+  partnershipsCreated            Partnership[]           @relation("PartnershipCreatedBy")
+  partnershipsUpdated            Partnership[]           @relation("PartnershipUpdatedBy")
+  importBatchesCreated           ImportBatch[]           @relation("ImportBatchCreatedBy")
+  importBatchesCommitted         ImportBatch[]           @relation("ImportBatchCommittedBy")
+  initiativesOwned               Initiative[]            @relation("InitiativeOwner")
+  initiativesCreated             Initiative[]            @relation("InitiativeCreatedBy")
+  initiativesUpdated             Initiative[]            @relation("InitiativeUpdatedBy")
+  milestonesOwned                Milestone[]             @relation("MilestoneOwner")
+  milestonesCreated              Milestone[]             @relation("MilestoneCreatedBy")
+  milestonesUpdated              Milestone[]             @relation("MilestoneUpdatedBy")
+  actionsAssigned                Action[]                @relation("ActionAssignee")
+  actionsCreated                 Action[]                @relation("ActionCreatedBy")
+  actionsUpdated                 Action[]                @relation("ActionUpdatedBy")
+  reviewsOwned                   Review[]                @relation("ReviewOwner")
+  reviewsCreated                 Review[]                @relation("ReviewCreatedBy")
+  reviewsUpdated                 Review[]                @relation("ReviewUpdatedBy")
+  decisionsDecided               Decision[]              @relation("DecisionDecider")
+  decisionsApproved              Decision[]              @relation("DecisionApprovedBy")
+  decisionsCreated               Decision[]              @relation("DecisionCreatedBy")
+  decisionsUpdated               Decision[]              @relation("DecisionUpdatedBy")
+  contributionsActed             Contribution[]          @relation("ContributionActor")
+  contributionsCreated           Contribution[]          @relation("ContributionCreatedBy")
+  contributionsUpdated           Contribution[]          @relation("ContributionUpdatedBy")
+  evidenceCreated                Evidence[]              @relation("EvidenceCreatedBy")
+  evidenceUpdated                Evidence[]              @relation("EvidenceUpdatedBy")
+  outcomesVerified               Outcome[]               @relation("OutcomeVerifier")
+  outcomesCreated                Outcome[]               @relation("OutcomeCreatedBy")
+  outcomesUpdated                Outcome[]               @relation("OutcomeUpdatedBy")
+  auditEvents                    AuditEvent[]
+  agreementsCreated              Agreement[]             @relation("AgreementCreatedBy")
+  agreementsUpdated              Agreement[]             @relation("AgreementUpdatedBy")
+  agreementVersionsApproved      AgreementVersion[]      @relation("AgreementVersionApprovedBy")
+  agreementVersionsCreated       AgreementVersion[]      @relation("AgreementVersionCreatedBy")
+  agreementVersionsUpdated       AgreementVersion[]      @relation("AgreementVersionUpdatedBy")
+  commercialRulesCreated         CommercialRule[]        @relation("CommercialRuleCreatedBy")
+  commercialRulesUpdated         CommercialRule[]        @relation("CommercialRuleUpdatedBy")
+  commercialRuleVersionsApproved CommercialRuleVersion[] @relation("CommercialRuleVersionApprovedBy")
+  commercialRuleVersionsCreated  CommercialRuleVersion[] @relation("CommercialRuleVersionCreatedBy")
+  commercialRuleVersionsUpdated  CommercialRuleVersion[] @relation("CommercialRuleVersionUpdatedBy")
+
+  @@map("users")
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model Tenant {
+  id        String       @id @default(uuid())
+  name      String
+  slug      String       @unique
+  timezone  String       @default("Asia/Riyadh")
+  locale    String       @default("en")
+  status    TenantStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  memberships   Membership[]
+  invitations   Invitation[]
+  partners      Partner[]
+  partnerships  Partnership[]
+  importBatches ImportBatch[]
+  initiatives   Initiative[]
+
+  @@map("tenants")
+}
+
+// PRD §2.3's MVP capability matrix columns, plus OWNER split out of ADMIN
+// (see the migration note above). Ordered roughly by capability breadth —
+// nothing in the code relies on enum declaration order, but it reads better.
+enum MembershipRole {
+  OWNER
+  ADMIN
+  EXECUTIVE
+  MANAGER
+  REVIEWER
+  GUEST
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+model Membership {
+  id        String           @id @default(uuid())
+  tenantId  String
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      MembershipRole   @default(MANAGER)
+  status    MembershipStatus @default(ACTIVE)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId])
+  @@map("memberships")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+// Same hash-only token storage rule as RefreshToken/PasswordResetToken.
+// No DB-level uniqueness on (tenantId, email) — the service checks for an
+// existing PENDING row itself, so revoking and re-inviting the same address
+// doesn't fight a unique constraint on the now-superseded row.
+model Invitation {
+  id          String           @id @default(uuid())
+  tenantId    String
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email       String
+  role        MembershipRole
+  tokenHash   String           @unique
+  invitedById String
+  invitedBy   User             @relation(fields: [invitedById], references: [id])
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  createdAt   DateTime         @default(now())
+  acceptedAt  DateTime?
+
+  @@index([tenantId])
+  @@map("invitations")
+}
+
+enum PartnerStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model Partner {
+  id          String        @id @default(uuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  legalName   String
+  displayName String
+  identifiers Json?
+  segment     String?
+  domains     String[]      @default([])
+  status      PartnerStatus @default(ACTIVE)
+  // Optimistic concurrency per PRD §4.1 — a PATCH must send the version it
+  // last read; a mismatch is a 409, not a silent overwrite.
+  version     Int           @default(1)
+  createdAt   DateTime      @default(now())
+  createdById String
+  createdBy   User          @relation("PartnerCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime      @updatedAt
+  updatedById String
+  updatedBy   User          @relation("PartnerUpdatedBy", fields: [updatedById], references: [id])
+
+  partnership Partnership?
+
+  // Light duplicate guard ahead of real dedup (CSV Import, Roadmap Phase 2
+  // item 6, PRD FLOW-A) — two genuinely distinct partners sharing a legal
+  // name within one tenant should be rare enough that this is a feature,
+  // not a limitation, until that import/dedup flow exists.
+  @@unique([tenantId, legalName])
+  @@index([tenantId])
+  @@map("partners")
+}
+
+enum PartnershipStage {
+  PROSPECT
+  QUALIFIED
+  PLANNING
+  ACTIVE
+  AT_RISK
+  PAUSED
+  TERMINATED
+  ARCHIVED
+}
+
+enum PartnershipHealth {
+  HEALTHY
+  NEEDS_ATTENTION
+  CRITICAL
+}
+
+model Partnership {
+  id        String  @id @default(uuid())
+  tenantId  String
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  partnerId String  @unique
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  stage PartnershipStage @default(PROSPECT)
+
+  // Gated by stage, not by a NOT NULL column — see the migration note above
+  // for the exact gate per field (owner from Qualified; health/nextReviewAt
+  // from Active; motion/objective/cadence also required to reach Active).
+  ownerId      String?
+  owner        User?              @relation("PartnershipOwner", fields: [ownerId], references: [id])
+  sponsorId    String?
+  sponsor      User?              @relation("PartnershipSponsor", fields: [sponsorId], references: [id])
+  motion       String?
+  objective    String?
+  cadence      String?
+  health       PartnershipHealth?
+  nextReviewAt DateTime?
+
+  // PORT-04: "Transition reasons and dependencies enforced" — required by
+  // the service for the exception/exit transitions (into At Risk, Paused or
+  // Terminated), optional otherwise. Stores only the most recent transition's
+  // reason; a full history is Audit Timeline's job (Roadmap Phase 4), not this table's.
+  lastTransitionReason String?
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("PartnershipCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("PartnershipUpdatedBy", fields: [updatedById], references: [id])
+
+  initiatives   Initiative[]
+  reviews       Review[]
+  decisions     Decision[]
+  contributions Contribution[]
+  outcomes      Outcome[]
+  agreements    Agreement[]
+
+  @@index([tenantId])
+  @@map("partnerships")
+}
+
+enum ImportBatchStatus {
+  UPLOADED
+  MAPPED
+  COMMITTED
+}
+
+model ImportBatch {
+  id            String            @id @default(uuid())
+  tenantId      String
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fileName      String
+  rowCount      Int
+  columnHeaders String[]
+  // Target field name -> source CSV column header, e.g. {"legalName": "Company Name"}.
+  fieldMapping  Json?
+  status        ImportBatchStatus @default(UPLOADED)
+
+  // Cached from the rows on every mapping recompute and on commit, so the
+  // preview/results screens don't need to re-aggregate on every read.
+  createdCount  Int @default(0)
+  updatedCount  Int @default(0)
+  skippedCount  Int @default(0)
+  rejectedCount Int @default(0)
+
+  version       Int       @default(1)
+  createdAt     DateTime  @default(now())
+  createdById   String
+  createdBy     User      @relation("ImportBatchCreatedBy", fields: [createdById], references: [id])
+  mappedAt      DateTime?
+  committedAt   DateTime?
+  committedById String?
+  committedBy   User?     @relation("ImportBatchCommittedBy", fields: [committedById], references: [id])
+
+  rows ImportRow[]
+
+  @@index([tenantId])
+  @@map("import_batches")
+}
+
+enum ImportRowDisposition {
+  PENDING
+  CREATE
+  UPDATE
+  SKIP
+  REJECT
+}
+
+model ImportRow {
+  id        String      @id @default(uuid())
+  batchId   String
+  batch     ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  tenantId  String
+  // 1-based, excluding the header row.
+  rowNumber Int
+  rawData   Json
+
+  disposition      ImportRowDisposition @default(PENDING)
+  matchReason      String?
+  rejectReason     String?
+  // Plain reference ids, not Prisma relations — see the migration note above.
+  matchedPartnerId String?
+  // User override for a SKIP row: import it anyway despite the probable-duplicate flag.
+  forceCreate      Boolean              @default(false)
+
+  committedPartnerId     String?
+  committedPartnershipId String?
+  committedAt            DateTime?
+
+  @@index([batchId])
+  @@index([tenantId])
+  @@map("import_rows")
+}
+
+enum InitiativeStage {
+  DRAFT
+  PROPOSED
+  APPROVED
+  ACTIVE
+  BLOCKED
+  COMPLETED
+  CANCELLED
+}
+
+enum InitiativeVisibility {
+  PRIVATE
+  SHAREABLE
+}
+
+enum InitiativeHealth {
+  HEALTHY
+  NEEDS_ATTENTION
+  CRITICAL
+}
+
+enum InitiativeCompletionDisposition {
+  ACHIEVED
+  PARTIALLY_ACHIEVED
+  NOT_ACHIEVED
+}
+
+enum RemainingActionsTreatment {
+  CANCEL_REMAINING
+  LEAVE_OPEN
+}
+
+model Initiative {
+  id            String      @id @default(uuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  partnershipId String
+  partnership   Partnership @relation(fields: [partnershipId], references: [id], onDelete: Cascade)
+
+  objective      String
+  // {type, target, unit, date} — unshaped JSON, same reason as Partner.identifiers: Table 67
+  // says "Structured/text" without naming a schema.
+  successMeasure Json?
+  visibility     InitiativeVisibility @default(PRIVATE)
+  health         InitiativeHealth?
+  ownerId        String?
+  owner          User?                @relation("InitiativeOwner", fields: [ownerId], references: [id])
+  startDate      DateTime?
+  targetDate     DateTime?
+
+  stage InitiativeStage @default(DRAFT)
+
+  // Set together at completion (PATCH stage=COMPLETED) — see the migration
+  // note above for why `completionDisposition` stands in for INIT-07's
+  // "outcome disposition."
+  completionDisposition     InitiativeCompletionDisposition?
+  remainingActionsTreatment RemainingActionsTreatment?
+  // T-007: completing with a still-BLOCKED action is rejected unless this is
+  // set — the audited override. Only the latest is kept, same as
+  // Partnership.lastTransitionReason.
+  completionOverrideReason  String?
+  // Optional on every stage-changing PATCH, logged into initiative_status_changed
+  // — no PRD text requires it (unlike Partnership's PORT-04), so it's never enforced.
+  lastTransitionReason      String?
+  completedAt               DateTime?
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("InitiativeCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("InitiativeUpdatedBy", fields: [updatedById], references: [id])
+
+  milestones        Milestone[]
+  actions           Action[]
+  decisions         Decision[]
+  contributions     Contribution[]
+  outcomes          Outcome[]
+  agreementVersions AgreementVersion[]
+
+  @@index([tenantId])
+  @@index([partnershipId])
+  @@map("initiatives")
+}
+
+model Milestone {
+  id           String     @id @default(uuid())
+  tenantId     String
+  initiativeId String
+  initiative   Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  title          String
+  targetDate     DateTime
+  ownerId        String?
+  owner          User?     @relation("MilestoneOwner", fields: [ownerId], references: [id])
+  // Free text describing what "done" means for this milestone — INIT-02
+  // names "completion rule" without a schema; same treatment as Partnership.cadence.
+  completionRule String?
+  // "Ordered milestones" (INIT-02) — display/sequence order within the initiative.
+  order          Int       @default(0)
+  completedAt    DateTime?
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("MilestoneCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("MilestoneUpdatedBy", fields: [updatedById], references: [id])
+
+  actions Action[]
+
+  @@index([tenantId])
+  @@index([initiativeId])
+  @@map("milestones")
+}
+
+enum ActionStatus {
+  OPEN
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  CANCELLED
+}
+
+model Action {
+  id           String      @id @default(uuid())
+  tenantId     String
+  // Both optional, but the service requires at least one — a "follow-up
+  // action" recorded during a Review need not belong to any single
+  // Initiative. See docs/DECISIONS.md.
+  initiativeId String?
+  initiative   Initiative? @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  reviewId     String?
+  review       Review?     @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  milestoneId  String?
+  milestone    Milestone?  @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  title String
+
+  // INIT-03: "members or referenced counterpart owners" — at least one of
+  // these two is required (service-enforced; a DB CHECK across nullable
+  // columns isn't worth the complexity for this).
+  assigneeUserId       String?
+  assignee             User?   @relation("ActionAssignee", fields: [assigneeUserId], references: [id])
+  assigneeExternalName String?
+
+  dueDate DateTime?
+  status  ActionStatus @default(OPEN)
+
+  // Required by the service when status transitions to BLOCKED.
+  blockerReason  String?
+  completionNote String?
+  completedAt    DateTime?
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("ActionCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("ActionUpdatedBy", fields: [updatedById], references: [id])
+
+  contributions Contribution[]
+
+  @@index([tenantId])
+  @@index([initiativeId])
+  @@index([reviewId])
+  @@index([milestoneId])
+  @@map("actions")
+}
+
+enum ReviewStage {
+  SCHEDULED
+  IN_PREPARATION
+  IN_PROGRESS
+  COMPLETED
+  // Reachable per Table 13's state list, but no transition path reaches it
+  // yet — REV-06 ("reopen as revision") is P1 and deferred. See docs/DECISIONS.md.
+  REOPENED
+}
+
+enum ReviewNotesClassification {
+  INTERNAL
+  SHAREABLE
+}
+
+model Review {
+  id            String      @id @default(uuid())
+  tenantId      String
+  partnershipId String
+  partnership   Partnership @relation(fields: [partnershipId], references: [id], onDelete: Cascade)
+
+  // Free text describing the recurring cadence this instance covers, e.g.
+  // "Monthly" or "Q1 2026" — same unshaped treatment as Partnership.cadence.
+  period             String?
+  scheduledFor       DateTime
+  ownerId            String?
+  owner              User?    @relation("ReviewOwner", fields: [ownerId], references: [id])
+  // Simple array, not a join table — proportionate for "who's invited."
+  participantUserIds String[] @default([])
+
+  notes               String?
+  notesClassification ReviewNotesClassification @default(INTERNAL)
+
+  // Captured server-side on Scheduled -> In Preparation (REV-02). `snapshotId`
+  // is a fresh random id per capture, not the review's own id — Table 67
+  // calls for a distinct, unique identifier for "an immutable source-version set."
+  snapshotId String?
+  snapshot   Json?
+  snapshotAt DateTime?
+
+  // Required (with the absence of any still-open linked decision/follow-up)
+  // to complete — REV-05/T-008's "next cadence handling." Propagated onto
+  // the parent Partnership's own `nextReviewAt` on completion.
+  nextReviewAt DateTime?
+
+  stage       ReviewStage @default(SCHEDULED)
+  completedAt DateTime?
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("ReviewCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("ReviewUpdatedBy", fields: [updatedById], references: [id])
+
+  decisions Decision[]
+  actions   Action[]
+
+  @@index([tenantId])
+  @@index([partnershipId])
+  @@map("reviews")
+}
+
+enum DecisionStatus {
+  RECORDED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+model Decision {
+  id            String      @id @default(uuid())
+  tenantId      String
+  partnershipId String
+  partnership   Partnership @relation(fields: [partnershipId], references: [id], onDelete: Cascade)
+  reviewId      String?
+  review        Review?     @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  initiativeId  String?
+  initiative    Initiative? @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
+
+  // Free text — no PRD taxonomy is named for decision "type" (same
+  // ADM-05-not-built reason Partnership.motion stays free text).
+  type          String?
+  alternatives  String?
+  rationale     String
+  deciderId     String
+  decider       User     @relation("DecisionDecider", fields: [deciderId], references: [id])
+  effectiveDate DateTime
+  impact        String?
+
+  // DEC-02 / INV-004: a restricted decision needs an authorized approver who
+  // is not its own creator (separation of duties) before it's final.
+  requiresApproval Boolean        @default(false)
+  status           DecisionStatus @default(RECORDED)
+  approvedById     String?
+  approvedBy       User?          @relation("DecisionApprovedBy", fields: [approvedById], references: [id])
+  approvalNote     String?
+  decidedAt        DateTime?
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("DecisionCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("DecisionUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([tenantId])
+  @@index([partnershipId])
+  @@index([reviewId])
+  @@map("decisions")
+}
+
+// Feature: Evidence, Outcome, and Verification (PRD §6.7, S11/S12, FLOW-B's
+// conclusion). Table 12 names Contribution and Evidence as two distinct
+// entities — Contribution is the claim of observed work ("Prove
+// contribution" is S11's own stated goal); Evidence is the provenance-linked
+// file/reference that backs a contribution or an outcome's verification.
+//
+// No literal classification taxonomy is named anywhere in the PRD (ADM-05,
+// taxonomy configuration, is P1/deferred) beyond REV-04's own
+// "internal/shareable classification" for review notes — reused here as the
+// closest grounded precedent rather than inventing an unspecified third tier.
+enum EvidenceClassification {
+  INTERNAL
+  SHAREABLE
+}
+
+model Contribution {
+  id       String @id @default(uuid())
+  tenantId String
+
+  // EVD-01: "linked to partner, initiative, action or outcome" — "partner"
+  // is read as the governed Partnership relationship, the same reading
+  // every prior feature gives "the partner relationship" (Decision links
+  // partnershipId, not partnerId). At least one link is required — service-
+  // enforced, mirroring Action's initiativeId/reviewId pattern.
+  partnershipId String?
+  partnership   Partnership? @relation(fields: [partnershipId], references: [id], onDelete: Cascade)
+  initiativeId  String?
+  initiative    Initiative?  @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  actionId      String?
+  action        Action?      @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  outcomeId     String?
+  outcome       Outcome?     @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
+
+  // No PRD-named taxonomy — same ADM-05-not-built reason Decision.type stays free text.
+  type           String
+  actorId        String
+  actor          User                   @relation("ContributionActor", fields: [actorId], references: [id])
+  observedAt     DateTime
+  narrative      String
+  classification EvidenceClassification @default(INTERNAL)
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("ContributionCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("ContributionUpdatedBy", fields: [updatedById], references: [id])
+
+  evidence Evidence[]
+
+  @@index([tenantId])
+  @@index([partnershipId])
+  @@index([initiativeId])
+  @@index([actionId])
+  @@index([outcomeId])
+  @@map("contributions")
+}
+
+model Evidence {
+  id       String @id @default(uuid())
+  tenantId String
+
+  // At least one required (service-enforced) — evidence usually proves a
+  // specific contribution's claim, but INV-003 needs it linkable straight to
+  // an Outcome too ("cannot be Verified without at least one accessible
+  // evidence record").
+  contributionId String?
+  contribution   Contribution? @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  outcomeId      String?
+  outcome        Outcome?      @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
+
+  // EVD-02: "upload or reference" — source is always a free-text/URL
+  // reference; storageKey/fileName/mimeType/sizeBytes/checksum are set only
+  // when an actual file was uploaded (local-disk stand-in for the PRD's
+  // "files live in object storage" principle — see docs/DECISIONS.md).
+  source         String
+  storageKey     String?
+  fileName       String?
+  mimeType       String?
+  sizeBytes      Int?
+  checksum       String?
+  observedAt     DateTime
+  classification EvidenceClassification @default(INTERNAL)
+
+  // EVD-04: version/replacement chain — replacing evidence never overwrites
+  // the prior material file; it creates a new row pointing back at the one
+  // it replaces. `@unique` keeps the chain a simple 1:1 linked list.
+  replacesEvidenceId String?   @unique
+  replacesEvidence   Evidence? @relation("EvidenceReplaces", fields: [replacesEvidenceId], references: [id])
+  replacedBy         Evidence? @relation("EvidenceReplaces")
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("EvidenceCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("EvidenceUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([tenantId])
+  @@index([contributionId])
+  @@index([outcomeId])
+  @@map("evidence")
+}
+
+// Table 13's literal chain (Draft → Submitted → Verification Required →
+// Verified → Rejected → Superseded) is read as a reachability list, not a
+// strict sequence — OUT-03 requires a verifier to take three different
+// actions from Submitted (verify/reject/request more evidence), and
+// VERIFICATION_REQUIRED needs a documented recovery move back to SUBMITTED
+// once more evidence is attached, the same "stuck state" pattern applied to
+// every other state machine in this codebase. SUPERSEDED is reachable per
+// the state list but no transition path reaches it — OUT-04 ("supersede a
+// verified outcome") is P1 and deferred, same treatment as ReviewStage's
+// unreachable REOPENED.
+enum OutcomeStatus {
+  DRAFT
+  SUBMITTED
+  VERIFICATION_REQUIRED
+  VERIFIED
+  REJECTED
+  SUPERSEDED
+}
+
+model Outcome {
+  id            String      @id @default(uuid())
+  tenantId      String
+  partnershipId String
+  partnership   Partnership @relation(fields: [partnershipId], references: [id], onDelete: Cascade)
+  initiativeId  String?
+  initiative    Initiative? @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
+
+  // No PRD-named taxonomy for "type" — free text, same reason Decision.type is.
+  type          String
+  claimedResult String
+  value         Decimal? @db.Decimal(18, 4)
+  unit          String?
+  period        String?
+
+  status OutcomeStatus @default(DRAFT)
+
+  // OUT-02: submitted to an authorized verifier — required to reach
+  // Submitted; INV-003/DEC-02-style separation of duties (T-010) blocks the
+  // outcome's own creator from being its verifier.
+  verifierId          String?
+  verifier            User?     @relation("OutcomeVerifier", fields: [verifierId], references: [id])
+  submittedAt         DateTime?
+  verifiedAt          DateTime?
+  verifierDisposition String?
+  rejectionReason     String?
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("OutcomeCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("OutcomeUpdatedBy", fields: [updatedById], references: [id])
+
+  contributions Contribution[]
+  evidence      Evidence[]
+
+  @@index([tenantId])
+  @@index([partnershipId])
+  @@index([initiativeId])
+  @@index([verifierId])
+  @@map("outcomes")
+}
+
+// Opaque, rotated on every use (old one revoked when a new one is issued).
+// Only the SHA-256 hash is stored — the raw token exists only in the client's
+// httpOnly cookie and is never persisted or logged.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// Same hash-only storage rule as RefreshToken. Single-use — `usedAt` is set
+// the moment it's redeemed and the token is rejected on any later attempt.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// Feature: Audit Timeline and Audit Search (PRD §6.11, S16, AUD-01/02).
+// Append-only — no update/delete path is ever exposed; PRD §4.4's own text
+// says so explicitly ("Audit events are append-only"), and Table 13 lists no
+// state machine for it because there's no lifecycle to enforce. Written by
+// `recordAuditEvent()` (`modules/audit-operations/audit.service.ts`) as a
+// plain function every domain service calls directly after a material
+// mutation — not through NestJS DI, the same "singleton import, not
+// constructor-injected" pattern `prisma` itself already uses everywhere in
+// this codebase — so adding an audit call never changes a service's
+// constructor signature or breaks its existing unit tests.
+model AuditEvent {
+  id       String  @id @default(uuid())
+  // Plain scalar, not a `Tenant` relation — the same lighter shape every
+  // other tenant-scoped-but-not-tenant-owned entity already uses (Review,
+  // Decision, Action, Contribution, Evidence, Outcome all carry `tenantId`
+  // without a Prisma-level FK to `Tenant`), appropriate here since
+  // AuditEvent is written by every module, not owned by one root entity.
+  tenantId String
+  actorId  String?
+  actor    User?   @relation(fields: [actorId], references: [id])
+
+  // e.g. "partnership_created", "outcome_verified" — reuses the literal
+  // names already chosen for this codebase's existing analytics-event
+  // Logger lines wherever one already exists (see docs/DECISIONS.md), so
+  // the audit trail and the console analytics log for the same mutation
+  // are searchable by the same string.
+  action     String
+  objectType String
+  objectId   String
+
+  // Table 67: "Encrypted JSON" — no field-level encryption-at-rest layer
+  // exists anywhere in this codebase yet (same category of infra gap as
+  // "no object storage integration" for Evidence files); stored as plain
+  // Prisma `Json` and documented as a deferred hardening step, not silently
+  // dropped or faked.
+  before Json?
+  after  Json?
+
+  // Table 67: "a correlation id" — defaults to a fresh id per event
+  // (self-correlating) rather than the HTTP request's own `x-correlation-id`
+  // header, since threading that header through every already-built
+  // service's method signature would be a much larger retrofit than this
+  // phase's scope justifies; still a real, filterable column per AUD-02.
+  correlationId String   @default(uuid())
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([objectType, objectId])
+  @@index([actorId])
+  @@index([correlationId])
+  @@index([createdAt])
+  @@map("audit_events")
+}
+
+// Feature: Agreements and Commercial Rules (v2, PRD §6.8, S10, AGR-01/02/
+// 04/05, RULE-01–04) — the load-bearing prerequisite for the Revenue-Share
+// Pack's Partner Claim (CLM-02 requires every claim link "one partner,
+// revenue event and applicable agreement/rule").
+//
+// Both Agreement and CommercialRule follow the same two-tier shape: a
+// parent with a stable identity referenced everywhere downstream, and
+// child *Version rows carrying the actual effective-dated, approved
+// content — Table 67 names "Agreement Version" as its own row with its
+// own `effective_from/to` field distinct from the parent, and INV-002
+// ("An effective agreement/rule version cannot be edited; corrections
+// create a superseding version") names "agreement/rule version" as one
+// parallel concept applied to both families. A version is immutable once
+// `APPROVED` — corrections are a new version, never an edit, the same
+// "preserve, don't overwrite" discipline Evidence's own replacement chain
+// (EVD-04) already established.
+enum AgreementStatus {
+  CAPTURED
+  IN_REVIEW
+  EFFECTIVE
+  // Reachable once a later version is approved while an earlier one is
+  // Effective — Table 13's own chain names this as the state after
+  // Effective, not a loop back to it.
+  AMENDED
+  SUSPENDED
+  EXPIRED
+  TERMINATED
+}
+
+enum ApprovalStatus {
+  DRAFT
+  APPROVED
+}
+
+model Agreement {
+  id            String          @id @default(uuid())
+  tenantId      String
+  partnershipId String
+  partnership   Partnership     @relation(fields: [partnershipId], references: [id], onDelete: Cascade)
+  // AGR-01: "link source document/reference" — a URL/free-text reference,
+  // not a stored file; no object storage integration exists yet, the same
+  // gap Evidence's own file handling already documents.
+  sourceRef     String?
+  status        AgreementStatus @default(CAPTURED)
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("AgreementCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("AgreementUpdatedBy", fields: [updatedById], references: [id])
+
+  versions AgreementVersion[]
+
+  @@index([tenantId])
+  @@index([partnershipId])
+  @@map("agreements")
+}
+
+model AgreementVersion {
+  id           String      @id @default(uuid())
+  tenantId     String
+  agreementId  String
+  agreement    Agreement   @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  // AGR-04: "link agreement/rule versions to relationship, initiative and
+  // claim" — the relationship link is the parent Agreement's own
+  // partnershipId; this is the version-specific, optional Initiative
+  // scoping, the same optional-link pattern Decision/Contribution use.
+  // The Claim link is added from Claim's own side once that entity exists.
+  initiativeId String?
+  initiative   Initiative? @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
+
+  versionNumber  Int
+  terms          String?
+  effectiveFrom  DateTime
+  // Open-ended (ongoing) when null.
+  effectiveTo    DateTime?
+  approvalStatus ApprovalStatus @default(DRAFT)
+  approvedById   String?
+  approvedBy     User?          @relation("AgreementVersionApprovedBy", fields: [approvedById], references: [id])
+  approvedAt     DateTime?
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("AgreementVersionCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("AgreementVersionUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([tenantId])
+  @@index([agreementId])
+  @@map("agreement_versions")
+}
+
+// Table 12: "type, conditions, precedence, effective dates, version" — no
+// partnership/relationship field is named, unlike every other domain
+// entity in this codebase; a Commercial Rule is tenant-wide reusable
+// eligibility/attribution logic, not owned by one governed relationship.
+// Table 13 names no independent state machine for it either (only
+// Agreement's own row exists there) — RULE-03's literal text ("approve
+// effective-dated immutable rule version") is the only lifecycle text,
+// and it describes the *version*, not a parent-level chain — so, unlike
+// Agreement, CommercialRule itself carries no status field of its own.
+enum CommercialRuleType {
+  ELIGIBILITY
+  ATTRIBUTION
+}
+
+model CommercialRule {
+  id       String             @id @default(uuid())
+  tenantId String
+  name     String
+  type     CommercialRuleType
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("CommercialRuleCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("CommercialRuleUpdatedBy", fields: [updatedById], references: [id])
+
+  versions CommercialRuleVersion[]
+
+  @@index([tenantId])
+  @@map("commercial_rules")
+}
+
+model CommercialRuleVersion {
+  id               String         @id @default(uuid())
+  tenantId         String
+  commercialRuleId String
+  commercialRule   CommercialRule @relation(fields: [commercialRuleId], references: [id], onDelete: Cascade)
+
+  versionNumber Int
+  // Resolves which rule applies when more than one could match — the
+  // actual selection logic is Partner Claim's job (v2 item 14, not yet
+  // built); this phase only stores and orders by it.
+  precedence    Int       @default(0)
+  // RULE-01: "approved condition/operator catalog" — a small, fixed,
+  // explainable DSL evaluated server-side, deliberately not arbitrary
+  // code, so RULE-04's "explain rule evaluation as inputs, conditions,
+  // result and version" stays reproducible and safe. Shape:
+  // { combinator: 'AND' | 'OR', conditions: [{ field, operator, value }] }.
+  definition    Json
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+
+  approvalStatus ApprovalStatus @default(DRAFT)
+  approvedById   String?
+  approvedBy     User?          @relation("CommercialRuleVersionApprovedBy", fields: [approvedById], references: [id])
+  approvedAt     DateTime?
+
+  // RULE-02: "test rule against historical/sample events before approval
+  // ... test results stored with version." No real Revenue Event exists
+  // yet (v2 item 14) to test against historical records, so this stores
+  // the results of user-supplied sample cases instead — documented in
+  // docs/DECISIONS.md as a scope simplification, not a silent gap.
+  testResults Json?
+
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("CommercialRuleVersionCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt
+  updatedById String
+  updatedBy   User     @relation("CommercialRuleVersionUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([tenantId])
+  @@index([commercialRuleId])
+  @@map("commercial_rule_versions")
+}
