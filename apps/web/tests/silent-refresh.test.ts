@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { cookieValueFrom, withReplacedCookie, refreshSession } from '@/src/lib/auth/silent-refresh';
+import {
+  cookieValueFrom,
+  withReplacedCookie,
+  refreshSession,
+  startPilotSession,
+} from '@/src/lib/auth/silent-refresh';
 
 describe('cookieValueFrom', () => {
   it('extracts a named cookie value from a list of Set-Cookie headers', () => {
@@ -68,5 +73,38 @@ describe('refreshSession', () => {
   it('returns null when the API is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')));
     expect(await refreshSession('whatever')).toBeNull();
+  });
+});
+
+describe('startPilotSession', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('posts to the pilot-session endpoint and returns the new session cookies', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        getSetCookie: () => ['access_token=pilot; Path=/', 'refresh_token=pilot-r; Path=/'],
+      },
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await startPilotSession();
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/auth\/pilot-session$/), {
+      method: 'POST',
+    });
+    expect(result?.newAccessToken).toBe('pilot');
+  });
+
+  it('returns null when pilot mode is off (the API answers 404)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    expect(await startPilotSession()).toBeNull();
+  });
+
+  it('returns null when the API is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')));
+    expect(await startPilotSession()).toBeNull();
   });
 });

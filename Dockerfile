@@ -9,7 +9,7 @@ ENV CI=1 HUSKY=0 NEXT_TELEMETRY_DISABLED=1
 COPY . .
 RUN pnpm install --frozen-lockfile
 
-ARG NEXT_PUBLIC_API_URL=https://reven-ry-fk0kwc.cranl.net/api
+ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     API_INTERNAL_URL=http://127.0.0.1:4000 \
     DATABASE_URL=postgresql://build:build@localhost:5432/build

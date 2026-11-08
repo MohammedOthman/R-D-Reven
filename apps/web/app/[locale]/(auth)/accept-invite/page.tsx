@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { redirect } from '@/src/i18n/navigation';
 import { getCurrentUser } from '@/src/lib/auth/session';
 import { AcceptInviteForm } from './AcceptInviteForm';
+import { SERVER_API_URL } from '@/src/lib/api/server-url';
 
 interface InvitationPreview {
   email: string;
@@ -11,7 +12,7 @@ interface InvitationPreview {
 
 async function fetchPreview(token: string): Promise<InvitationPreview | null> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/invitations/${token}`, {
+    const res = await fetch(`${SERVER_API_URL}/auth/invitations/${token}`, {
       cache: 'no-store',
     });
     if (!res.ok) return null;
