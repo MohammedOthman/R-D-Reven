@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
 # DATABASE_URL here comes from the runtime environment, not the build placeholder.
 cd /app/packages/db && npx prisma migrate deploy

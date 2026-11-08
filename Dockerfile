@@ -19,4 +19,4 @@ RUN cd packages/db && npx prisma generate \
 
 ENV NODE_ENV=production API_PORT=4000 PORT=3000
 EXPOSE 3000
-CMD ["sh", "/app/start.sh"]
+CMD ["bash", "/app/start.sh"]
