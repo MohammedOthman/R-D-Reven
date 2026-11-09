@@ -11,9 +11,13 @@ RUN pnpm install --frozen-lockfile
 
 ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
-    API_INTERNAL_URL=http://127.0.0.1:4000 \
-    DATABASE_URL=postgresql://build:build@localhost:5432/build
-RUN cd packages/db && npx prisma generate \
+    API_INTERNAL_URL=http://127.0.0.1:4000
+# prisma.config.ts needs some DATABASE_URL to load during the build. Set it
+# for this step only: as an image-wide ENV it would stand in for a missing
+# runtime DATABASE_URL, and the app would quietly try a database on
+# localhost instead of failing with a clear "DATABASE_URL" error.
+RUN export DATABASE_URL=postgresql://build:build@localhost:5432/build \
+  && cd packages/db && npx prisma generate \
   && cd /app/apps/api && pnpm build \
   && cd /app/apps/web && pnpm build
 
