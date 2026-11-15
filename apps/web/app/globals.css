@@ -18,6 +18,8 @@
 }
 
 html[lang='ar'] {
+  /* Two body weights keep Arabic and Latin glyph subsets within the font budget. */
+  --font-weight-medium: 600;
   --font-display: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-ibm-plex-sans-arabic), ui-sans-serif, system-ui, sans-serif;
   --font-label: var(--font-ibm-plex-sans-arabic), ui-monospace, SFMono-Regular, monospace;

@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 import { ToastProvider } from '@revn/ui';
 import { routing } from '@/src/i18n/routing';
 import { localeDirection, type Locale } from '@/src/i18n/config';
-import { fontVariables } from '@/src/lib/fonts';
+import { fontVariablesForLocale } from '@/src/lib/fonts';
 import '../globals.css';
 
 export const metadata: Metadata = {
@@ -37,7 +37,7 @@ export default async function LocaleLayout({
   const direction = localeDirection[locale as Locale];
 
   return (
-    <html lang={locale} dir={direction} className={fontVariables}>
+    <html lang={locale} dir={direction} className={fontVariablesForLocale(locale)}>
       <body>
         <NextIntlClientProvider>
           <ToastProvider>{children}</ToastProvider>

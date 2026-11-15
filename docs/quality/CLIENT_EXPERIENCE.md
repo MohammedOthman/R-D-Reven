@@ -54,6 +54,22 @@ The skill's marketing-site checks were run without changing its scripts. Its thr
 10. `text-only`: a phone sign-in form is not accompanied by a promotional visual.
 11. `container`: the existing component system supplies the container rather than `.wrap`.
 
-Two static `focus-ring` findings were waived individually. Tailwind's outline-removal utilities are composed with visible ring utilities on the actual controls; the static scanner evaluates utility rules separately. The browser's live `focus-visible`, `focus-hidden`, focus naming, labels, heading order, contrast, collision, overflow, and 320px checks pass. The first waiver also covers the noninteractive main skip target. The remaining `share-meta` warning is retained: this private app is marked noindex and is not a public social-sharing page.
+Two static `focus-ring` findings were waived individually. Tailwind's outline-removal utilities are composed with visible ring utilities on the actual controls; the static scanner evaluates utility rules separately. On the account page, the browser's live `focus-visible`, `focus-hidden`, focus naming, labels, heading order, contrast, collision, overflow, and 320px checks pass. The first waiver also covers the noninteractive main skip target. The remaining `share-meta` warning is retained: this private app is marked noindex and is not a public social-sharing page.
 
 No photographs, third-party logo stand-ins, invented customer claims, assumed prices, contact placeholders, or coined product name were introduced. The original Reven logo and brand remain in use. The visual check uses locally created records solely as test fixtures.
+
+### Rendered review
+
+The production build was captured in 25 sequential headless Chromium runs using the skill's unmodified `shoot.mjs` (one browser at a time). The mobile review covers the overview, a new organization's first-use state, partnerships, partner creation, initiatives and their workspace, reviews and their workspace, agreements and their workspace, commercial rules, outcomes and their workspace, audit, administration, and the Arabic overview. Account access was also captured at 1440, 1024, 820, 768, and 390 pixels, with an Arabic phone capture. Additional overview and partnership captures cover desktop and tablet widths.
+
+Authenticated captures use a localhost-only test proxy supplying a genuine API session for seeded local organizations. That helper is not included in the application or this PR. Table content intentionally scrolls inside its own container on a phone. These screenshots confirm rendering; they are not an automated browser-interaction suite.
+
+### Font loading
+
+Performance verification found that the original shared font setup preloaded 15 files (337.6 KiB) on English sign-in. Keep the existing type families while selecting the locale's font variables, using variable Sora/Manrope/Cairo, and fetching faces on demand. Arabic body controls use regular and semibold weights. English sign-in now requests three font files (67.4 KiB); total transfer fell from 587.9 to 309.6 KiB at 1440px. Account links no longer speculatively prefetch other authentication routes. Sidebar and overview links also load private workspace routes on navigation rather than fetching every destination in advance.
+
+The skill's English sign-in performance check has zero FAILs at 1440px and 390px, with zero measured layout shift and no broken requests. Parsed JavaScript and the three English font families remain WARNs. These are local CPU-browser measurements, not production latency commitments.
+
+Arabic sign-in also has zero performance FAILs at both widths: six font files, 160.7 KiB of fonts, zero measured layout shift, and no broken requests. Its font count/bytes and JavaScript remain WARNs within the checker’s hard limits. The Arabic phone capture was repeated after the font change.
+
+The authenticated overview performance check finishes with zero FAILs at 1440px and 390px, zero measured layout shift, and zero broken requests after private-route prefetch was removed. JavaScript/font budget WARNs remain. The final page was confirmed to contain the authenticated local workspace rather than an expired-session sign-in redirect.

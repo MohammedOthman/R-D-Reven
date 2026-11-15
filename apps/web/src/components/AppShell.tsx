@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode, type ComponentProps } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
@@ -36,6 +36,11 @@ import { WorkspaceFormatProvider } from './WorkspaceFormat';
 import type { AuthUser } from '@/src/lib/auth/types';
 import type { Tenant, MembershipRole } from '@/src/lib/tenant/types';
 import { roleLabelKey } from '@/src/lib/tenant/roleLabels';
+
+/** Navigation should not fetch every private workspace before the user opens it. */
+function WorkspaceNavLink(props: ComponentProps<typeof Link>) {
+  return <Link {...props} prefetch={false} />;
+}
 
 export function AppShell({
   children,
@@ -190,7 +195,7 @@ export function AppShell({
     activeId,
     comingLaterLabel: t('common.comingLater'),
     navigationLabel: t('common.navigation'),
-    linkComponent: Link,
+    linkComponent: WorkspaceNavLink,
     logoSlot: (
       <Image
         src="/brand/reven-mark-white.svg"

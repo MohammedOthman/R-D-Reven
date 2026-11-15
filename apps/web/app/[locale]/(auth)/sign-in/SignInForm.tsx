@@ -86,6 +86,7 @@ export function SignInForm() {
 
           <div className="text-end">
             <Link
+              prefetch={false}
               href="/forgot-password"
               className="text-accent-deep inline-flex min-h-11 items-center text-sm font-medium hover:underline"
             >
@@ -109,7 +110,11 @@ export function SignInForm() {
 
         <p className="font-body text-muted-body text-center text-sm">
           {t('noAccount')}{' '}
-          <Link href="/sign-up" className="text-accent font-medium hover:underline">
+          <Link
+            prefetch={false}
+            href="/sign-up"
+            className="text-accent font-medium hover:underline"
+          >
             {t('signUpLink')}
           </Link>
         </p>

@@ -140,6 +140,7 @@ export default async function CommandCenterPage({
                 </p>
               </div>
               <Link
+                prefetch={false}
                 href="/partnerships?create=partner"
                 className={buttonVariants({ variant: 'primary' })}
               >
@@ -168,6 +169,7 @@ export default async function CommandCenterPage({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {kpis.map((kpi) => (
           <Link
+            prefetch={false}
             key={kpi.key}
             href={kpi.href}
             className="focus-visible:ring-accent block rounded-lg focus-visible:ring-2 focus-visible:outline-none"
@@ -207,6 +209,7 @@ export default async function CommandCenterPage({
             <>
               {dashboard.exceptions.atRiskPartnerships.map((p) => (
                 <Link
+                  prefetch={false}
                   key={p.id}
                   href="/partnerships"
                   className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
@@ -217,6 +220,7 @@ export default async function CommandCenterPage({
               ))}
               {dashboard.exceptions.blockedInitiatives.map((i) => (
                 <Link
+                  prefetch={false}
                   key={i.id}
                   href={`/initiatives/${i.id}`}
                   className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
@@ -236,6 +240,7 @@ export default async function CommandCenterPage({
               ))}
               {dashboard.exceptions.rejectedOutcomes.map((o) => (
                 <Link
+                  prefetch={false}
                   key={o.id}
                   href={`/evidence-outcomes/${o.id}`}
                   className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
@@ -263,6 +268,7 @@ export default async function CommandCenterPage({
                 const overdue = p.nextReviewAt ? new Date(p.nextReviewAt) < new Date() : false;
                 return (
                   <Link
+                    prefetch={false}
                     key={p.id}
                     href="/partnerships"
                     className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
@@ -291,6 +297,7 @@ export default async function CommandCenterPage({
             ) : (
               dashboard.pendingDecisions.map((d) => (
                 <Link
+                  prefetch={false}
                   key={d.id}
                   href={d.reviewId ? `/reviews/${d.reviewId}` : '/reviews'}
                   className="hover:bg-canvas flex flex-col gap-0.5 rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
@@ -314,6 +321,7 @@ export default async function CommandCenterPage({
             ) : (
               dashboard.initiativesNeedingAttention.map((i) => (
                 <Link
+                  prefetch={false}
                   key={i.id}
                   href={`/initiatives/${i.id}`}
                   className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
