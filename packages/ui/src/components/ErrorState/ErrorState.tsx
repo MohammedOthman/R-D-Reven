@@ -26,9 +26,9 @@ export function ErrorState({
       <div className="bg-status-alert/10 text-status-alert flex size-12 items-center justify-center rounded-full">
         <AlertOctagon className="size-6" aria-hidden="true" />
       </div>
-      <h3 className="font-display text-ink text-base font-bold tracking-[var(--tracking-display)]">
+      <p className="font-display text-ink text-base font-bold tracking-[var(--tracking-display)]">
         {title}
-      </h3>
+      </p>
       <p className="font-body text-muted-body max-w-sm text-sm">{description}</p>
       {action && <div className="mt-2">{action}</div>}
     </div>

@@ -12,6 +12,7 @@ const evidenceFindUnique = vi.fn();
 const evidenceCreate = vi.fn();
 const evidenceUpdate = vi.fn();
 const evidenceFileCreate = vi.fn();
+const evidenceFileFindFirst = vi.fn();
 // Stands in for prisma.$transaction([...]): the service passes the already-
 // built operations, so resolving them in order matches Prisma's contract.
 const transaction = vi.fn((ops: Promise<unknown>[]) => Promise.all(ops));
@@ -26,7 +27,10 @@ vi.mock('@revn/db', () => ({
       create: (...args: unknown[]) => evidenceCreate(...args),
       update: (...args: unknown[]) => evidenceUpdate(...args),
     },
-    evidenceFile: { create: (...args: unknown[]) => evidenceFileCreate(...args) },
+    evidenceFile: {
+      create: (...args: unknown[]) => evidenceFileCreate(...args),
+      findFirst: (...args: unknown[]) => evidenceFileFindFirst(...args),
+    },
     $transaction: (ops: Promise<unknown>[]) => transaction(ops),
   },
   Prisma: { PrismaClientKnownRequestError: class extends Error {} },
@@ -212,5 +216,48 @@ describe('EvidenceService.replace — EVD-04', () => {
         data: expect.objectContaining({ replacesEvidenceId: 'evidence-1', source: 'new source' }),
       }),
     );
+  });
+});
+
+describe('EvidenceService.getFile — tenant-scoped download', () => {
+  beforeEach(() => {
+    evidenceFindFirst.mockReset();
+    evidenceFileFindFirst.mockReset();
+  });
+  it('does not look up bytes when the evidence is not in the caller’s tenant', async () => {
+    evidenceFindFirst.mockResolvedValue(null);
+    await expect(
+      new EvidenceService().getFile('other-tenant', 'evidence-1', 'user-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(evidenceFindFirst).toHaveBeenCalledWith({
+      where: { id: 'evidence-1', tenantId: 'other-tenant' },
+    });
+    expect(evidenceFileFindFirst).not.toHaveBeenCalled();
+  });
+  it('returns not-found when the evidence has no uploaded file', async () => {
+    evidenceFindFirst.mockResolvedValue(evidence());
+    await expect(
+      new EvidenceService().getFile('tenant-1', 'evidence-1', 'user-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(evidenceFileFindFirst).not.toHaveBeenCalled();
+  });
+  it('requires the stored bytes to belong to the same tenant', async () => {
+    evidenceFindFirst.mockResolvedValue(evidence({ storageKey: 'stored-file' }));
+    evidenceFileFindFirst.mockResolvedValue(null);
+    await expect(
+      new EvidenceService().getFile('tenant-1', 'evidence-1', 'user-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(evidenceFileFindFirst).toHaveBeenCalledWith({
+      where: { storageKey: 'stored-file', tenantId: 'tenant-1' },
+    });
+  });
+  it('returns the original bytes and filename for an authorized reader', async () => {
+    evidenceFindFirst.mockResolvedValue(
+      evidence({ storageKey: 'stored-file', fileName: 'نتيجة.pdf' }),
+    );
+    evidenceFileFindFirst.mockResolvedValue({ content: new Uint8Array([1, 2, 3]) });
+    await expect(
+      new EvidenceService().getFile('tenant-1', 'evidence-1', 'user-1'),
+    ).resolves.toEqual({ content: Buffer.from([1, 2, 3]), fileName: 'نتيجة.pdf' });
   });
 });

@@ -1,5 +1,7 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -44,6 +46,7 @@ export function CommercialRulesContent({
   initialCommercialRules: CommercialRule[];
   currentRole: MembershipRole;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('commercialRules');
   const router = useRouter();
   const canWrite = WRITE_ROLES.includes(currentRole);
@@ -63,7 +66,7 @@ export function CommercialRulesContent({
     {
       key: 'createdAt',
       header: t('createdAtHeader'),
-      render: (r) => new Date(r.createdAt).toLocaleDateString(),
+      render: (r) => formatDate(r.createdAt),
     },
   ];
 
@@ -158,7 +161,7 @@ function CreateRuleDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('createDialogTitle')}</DialogTitle>

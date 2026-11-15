@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -116,7 +117,8 @@ export function PartnershipsContent({
   const canWrite = WRITE_ROLES.includes(currentRole);
   const canImport = IMPORT_ROLES.includes(currentRole);
   const canExport = EXPORT_ROLES.includes(currentRole);
-  const [formOpen, setFormOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const [formOpen, setFormOpen] = useState(canWrite && searchParams.get('create') === 'partner');
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [relationshipPartner, setRelationshipPartner] = useState<Partner | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -399,7 +401,7 @@ function PartnerFormDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{partner ? t('editDialogTitle') : t('createDialogTitle')}</DialogTitle>
@@ -607,7 +609,7 @@ function PartnershipDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent closeLabel={t('cancel')} className="max-w-lg">
         <form
           onSubmit={partnership ? handleSave : handleStart}
           className="flex flex-col gap-4"

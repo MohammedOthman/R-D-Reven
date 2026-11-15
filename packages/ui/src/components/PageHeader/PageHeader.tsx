@@ -19,20 +19,22 @@ export function PageHeader({ eyebrow, title, description, actions, className }: 
     <div
       className={cn('flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between', className)}
     >
-      <div className="flex flex-col gap-1.5 text-start">
-        {eyebrow && (
-          <span className="font-label text-muted-tertiary text-xs font-medium tracking-[var(--tracking-label-wide)] uppercase">
-            {eyebrow}
-          </span>
-        )}
-        <h1 className="font-display text-ink text-2xl font-extrabold tracking-[var(--tracking-display)] text-balance">
+      <div className="flex min-w-0 flex-col gap-2 text-start">
+        {eyebrow && <span className="text-muted-body text-[13px] font-medium">{eyebrow}</span>}
+        <h1 className="font-display text-ink text-2xl font-bold tracking-[var(--tracking-display)] text-balance sm:text-3xl">
           {title}
         </h1>
         {description && (
-          <p className="font-body text-muted-body max-w-2xl text-sm">{description}</p>
+          <p className="font-body text-muted-body max-w-2xl text-sm leading-relaxed">
+            {description}
+          </p>
         )}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-3">{actions}</div>}
+      {actions && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -89,6 +91,7 @@ export function ReviewWorkspace({
   members: MemberSummary[];
   currentRole: MembershipRole;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('reviews');
   const router = useRouter();
   const canWrite = WRITE_ROLES.includes(currentRole);
@@ -142,7 +145,7 @@ export function ReviewWorkspace({
     <div className="flex flex-col gap-8">
       <PageHeader
         eyebrow={partnerName ? `${t('eyebrow')} — ${partnerName}` : t('eyebrow')}
-        title={review.period || new Date(review.scheduledFor).toLocaleDateString()}
+        title={review.period || formatDate(review.scheduledFor)}
         description={t('workspaceDescription')}
         actions={
           <Button variant="ghost" onClick={() => router.push('/reviews')} className="gap-1.5">
@@ -171,14 +174,14 @@ export function ReviewWorkspace({
               <p className="text-muted-body text-xs tracking-[var(--tracking-label)] uppercase">
                 {t('scheduledForLabel')}
               </p>
-              <p className="text-ink">{new Date(review.scheduledFor).toLocaleDateString()}</p>
+              <p className="text-ink">{formatDate(review.scheduledFor)}</p>
             </div>
             <div>
               <p className="text-muted-body text-xs tracking-[var(--tracking-label)] uppercase">
                 {t('nextReviewLabel')}
               </p>
               <p className="text-ink">
-                {review.nextReviewAt ? new Date(review.nextReviewAt).toLocaleDateString() : '—'}
+                {review.nextReviewAt ? formatDate(review.nextReviewAt) : '—'}
               </p>
             </div>
             <div>
@@ -200,7 +203,7 @@ export function ReviewWorkspace({
               </p>
               <p className="text-muted-body text-xs">
                 {t('snapshotCapturedAt', {
-                  date: review.snapshotAt ? new Date(review.snapshotAt).toLocaleString() : '',
+                  date: review.snapshotAt ? formatDate(review.snapshotAt, true) : '',
                 })}
               </p>
               <p className="text-ink mt-1">{JSON.stringify(review.snapshot)}</p>
@@ -264,7 +267,7 @@ export function ReviewWorkspace({
                   <p className="text-ink truncate text-sm font-medium">{d.rationale}</p>
                   <p className="text-muted-body truncate text-xs">
                     {d.type || t('untypedDecision')} · {memberName(d.deciderId)} ·{' '}
-                    {new Date(d.effectiveDate).toLocaleDateString()}
+                    {formatDate(d.effectiveDate)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -330,7 +333,7 @@ export function ReviewWorkspace({
                   <p className="text-ink truncate text-sm font-medium">{a.title}</p>
                   <p className="text-muted-body truncate text-xs">
                     {a.assigneeUserId ? memberName(a.assigneeUserId) : a.assigneeExternalName}
-                    {a.dueDate ? ` · ${new Date(a.dueDate).toLocaleDateString()}` : ''}
+                    {a.dueDate ? ` · ${formatDate(a.dueDate)}` : ''}
                     {a.blockerReason ? ` · ${a.blockerReason}` : ''}
                   </p>
                 </div>
@@ -441,7 +444,7 @@ function CompleteReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('completeDialogTitle')}</DialogTitle>
@@ -542,7 +545,7 @@ function AddDecisionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('addDecisionButton')}</DialogTitle>

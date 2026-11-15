@@ -1,5 +1,7 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -36,7 +38,10 @@ import type { Agreement, AgreementStatus } from '@/src/lib/agreements/types';
 const WRITE_ROLES: MembershipRole[] = ['OWNER', 'ADMIN', 'MANAGER'];
 const NONE = '__none__';
 
-const STATUS_TONE: Record<AgreementStatus, 'neutral' | 'accent' | 'positive' | 'caution' | 'alert'> = {
+const STATUS_TONE: Record<
+  AgreementStatus,
+  'neutral' | 'accent' | 'positive' | 'caution' | 'alert'
+> = {
   CAPTURED: 'neutral',
   IN_REVIEW: 'accent',
   EFFECTIVE: 'positive',
@@ -59,6 +64,7 @@ export function AgreementsContent({
   partners: Partner[];
   currentRole: MembershipRole;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('agreements');
   const router = useRouter();
   const canWrite = WRITE_ROLES.includes(currentRole);
@@ -92,7 +98,7 @@ export function AgreementsContent({
     {
       key: 'createdAt',
       header: t('createdAtHeader'),
-      render: (a) => new Date(a.createdAt).toLocaleDateString(),
+      render: (a) => formatDate(a.createdAt),
     },
   ];
 
@@ -104,7 +110,11 @@ export function AgreementsContent({
         description={t('description')}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={() => router.push('/agreements/rules')} className="gap-1.5">
+            <Button
+              variant="secondary"
+              onClick={() => router.push('/agreements/rules')}
+              className="gap-1.5"
+            >
               <Scale className="size-4" aria-hidden="true" />
               {t('commercialRulesButton')}
             </Button>
@@ -194,7 +204,7 @@ function CreateAgreementDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('createDialogTitle')}</DialogTitle>
@@ -219,7 +229,11 @@ function CreateAgreementDialog({
             </Select>
           </FormField>
 
-          <FormField id="agreement-source-ref" label={t('sourceRefLabel')} hint={t('sourceRefHint')}>
+          <FormField
+            id="agreement-source-ref"
+            label={t('sourceRefLabel')}
+            hint={t('sourceRefHint')}
+          >
             <Input
               id="agreement-source-ref"
               value={sourceRef}

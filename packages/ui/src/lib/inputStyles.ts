@@ -3,7 +3,7 @@ import { cva } from 'class-variance-authority';
 /** Shared visual treatment for Input, Textarea, Select trigger and DateInput. */
 export const inputVariants = cva(
   [
-    'w-full font-body text-sm text-ink bg-card rounded-md border',
+    'w-full font-body text-base sm:text-sm text-ink bg-card rounded-md border',
     'border-[var(--border-default)] placeholder:text-muted-micro',
     'transition-colors duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:border-accent',
@@ -16,8 +16,8 @@ export const inputVariants = cva(
         false: '',
       },
       size: {
-        sm: 'h-8 px-2.5 text-sm',
-        md: 'h-10 px-3',
+        sm: 'h-11 px-2.5 sm:h-9',
+        md: 'h-11 px-3',
       },
     },
     defaultVariants: {

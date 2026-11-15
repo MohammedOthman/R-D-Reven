@@ -1,5 +1,7 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -90,6 +92,7 @@ export function InitiativeWorkspace({
   members: MemberSummary[];
   currentRole: MembershipRole;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('initiatives');
   const router = useRouter();
   const canWrite = WRITE_ROLES.includes(currentRole);
@@ -189,7 +192,7 @@ export function InitiativeWorkspace({
                 {t('startDateLabel')}
               </p>
               <p className="text-ink">
-                {initiative.startDate ? new Date(initiative.startDate).toLocaleDateString() : '—'}
+                {initiative.startDate ? formatDate(initiative.startDate) : '—'}
               </p>
             </div>
             <div>
@@ -197,7 +200,7 @@ export function InitiativeWorkspace({
                 {t('targetDateLabel')}
               </p>
               <p className="text-ink">
-                {initiative.targetDate ? new Date(initiative.targetDate).toLocaleDateString() : '—'}
+                {initiative.targetDate ? formatDate(initiative.targetDate) : '—'}
               </p>
             </div>
             <div>
@@ -277,7 +280,7 @@ export function InitiativeWorkspace({
                     {m.title}
                   </p>
                   <p className="text-muted-body text-xs">
-                    {new Date(m.targetDate).toLocaleDateString()} · {memberName(m.ownerId)}
+                    {formatDate(m.targetDate)} · {memberName(m.ownerId)}
                   </p>
                 </div>
                 {canWrite && (
@@ -338,7 +341,7 @@ export function InitiativeWorkspace({
                   <p className="text-ink truncate text-sm font-medium">{a.title}</p>
                   <p className="text-muted-body truncate text-xs">
                     {a.assigneeUserId ? memberName(a.assigneeUserId) : a.assigneeExternalName}
-                    {a.dueDate ? ` · ${new Date(a.dueDate).toLocaleDateString()}` : ''}
+                    {a.dueDate ? ` · ${formatDate(a.dueDate)}` : ''}
                     {a.blockerReason ? ` · ${a.blockerReason}` : ''}
                   </p>
                 </div>
@@ -468,7 +471,7 @@ function EditInitiativeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('editDialogTitle')}</DialogTitle>
@@ -599,7 +602,7 @@ function CompleteInitiativeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('completeDialogTitle')}</DialogTitle>
@@ -724,7 +727,7 @@ function MilestoneDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('addMilestoneButton')}</DialogTitle>

@@ -8,7 +8,7 @@ export const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-2 whitespace-nowrap',
     'font-body font-semibold rounded-md',
-    'transition-colors duration-150',
+    'transition-[color,background-color,border-color,box-shadow,transform] duration-150 motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
     'disabled:pointer-events-none disabled:opacity-50',
   ],
@@ -23,10 +23,10 @@ export const buttonVariants = cva(
         link: 'bg-transparent text-accent underline-offset-4 hover:underline p-0 h-auto font-medium',
       },
       size: {
-        sm: 'h-8 px-3 text-sm',
-        md: 'h-10 px-4 text-sm',
+        sm: 'min-h-11 px-3 text-sm sm:min-h-9',
+        md: 'min-h-11 px-4 text-sm',
         lg: 'h-12 px-6 text-base',
-        icon: 'h-10 w-10 shrink-0',
+        icon: 'size-11 shrink-0',
       },
     },
     defaultVariants: {

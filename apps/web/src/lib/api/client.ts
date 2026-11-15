@@ -2,7 +2,7 @@
 
 import { ApiError, type ApiErrorBody } from './error';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 
 interface ApiFetchOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -60,6 +60,17 @@ export async function apiUpload<T>(path: string, formData: FormData, _isRetry = 
   }
 
   return parseResponse<T>(res);
+}
+
+/** Download through the same session renewal and API error contract as JSON requests. */
+export async function apiDownload(path: string): Promise<Blob> {
+  let res = await rawFetch(path, {});
+  if (res.status === 401) {
+    const refreshed = await rawFetch('/auth/refresh', { method: 'POST' });
+    if (refreshed.ok) res = await rawFetch(path, {});
+  }
+  if (!res.ok) await parseResponse<never>(res);
+  return res.blob();
 }
 
 function rawFetch(path: string, options: ApiFetchOptions): Promise<Response> {
