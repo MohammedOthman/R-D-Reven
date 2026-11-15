@@ -30,7 +30,7 @@ import {
 } from '@revn/ui';
 import { Link, useRouter, usePathname } from '@/src/i18n/navigation';
 import { activeNavIdFromPathname } from '@/src/lib/activeNavId';
-import { signOut } from '@/src/lib/auth/client';
+import { signOut, switchPilotRole } from '@/src/lib/auth/client';
 import { LocaleSwitcherLink } from '@/src/components/LocaleSwitcherLink';
 import { WorkspaceFormatProvider } from './WorkspaceFormat';
 import type { AuthUser } from '@/src/lib/auth/types';
@@ -47,11 +47,13 @@ export function AppShell({
   user,
   tenant,
   role,
+  pilotMode = false,
 }: {
   children: ReactNode;
   user: AuthUser;
   tenant: Tenant;
   role: MembershipRole;
+  pilotMode?: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -61,6 +63,7 @@ export function AppShell({
   const mobileNavTrigger = useRef<HTMLButtonElement>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [switchingRole, setSwitchingRole] = useState(false);
   const activeId = activeNavIdFromPathname(pathname);
   const isAdmin = role === 'OWNER' || role === 'ADMIN';
   const isInternal = role !== 'GUEST';
@@ -131,7 +134,7 @@ export function AppShell({
           },
         ]
       : []),
-    ...(isAdmin
+    ...(isAdmin && !pilotMode
       ? [
           {
             id: 'administration',
@@ -168,27 +171,49 @@ export function AppShell({
     }
   };
 
+  const handlePilotRole = async (nextRole: string) => {
+    if (!['OWNER', 'EXECUTIVE', 'REVIEWER'].includes(nextRole)) return;
+    setSwitchingRole(true);
+    try {
+      await switchPilotRole(nextRole as 'OWNER' | 'EXECUTIVE' | 'REVIEWER');
+      router.replace('/');
+      router.refresh();
+    } catch {
+      toast({ title: t('pilot.switchError'), variant: 'error' });
+    } finally {
+      setSwitchingRole(false);
+    }
+  };
+
   const footerSlot = (
     <div className={collapsed ? 'flex justify-center' : 'flex items-center gap-2.5'}>
       {!collapsed && (
         <>
           <Avatar name={user.name} size="sm" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">{user.name}</p>
-            <p className="truncate text-[13px] text-white/65">{t(roleLabelKey(role))}</p>
+            <p className="truncate text-sm font-medium text-white">
+              {pilotMode ? t('pilot.label') : user.name}
+            </p>
+            <p className="truncate text-[13px] text-white/65">
+              {pilotMode
+                ? t('pilot.personaRole', { role: t(roleLabelKey(role)) })
+                : t(roleLabelKey(role))}
+            </p>
           </div>
         </>
       )}
-      <button
-        type="button"
-        onClick={handleSignOut}
-        disabled={signingOut}
-        aria-label={t('common.signOut')}
-        title={t('common.signOut')}
-        className="flex size-11 shrink-0 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none disabled:opacity-50"
-      >
-        <LogOut className="size-[18px]" aria-hidden="true" />
-      </button>
+      {!pilotMode && (
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          aria-label={t('common.signOut')}
+          title={t('common.signOut')}
+          className="flex size-11 shrink-0 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none disabled:opacity-50"
+        >
+          <LogOut className="size-[18px]" aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
   const sidebarProps = {
@@ -286,6 +311,36 @@ export function AppShell({
             className="min-h-0 flex-1 overflow-y-auto overscroll-contain focus:outline-none"
           >
             <div className="mx-auto w-full max-w-[1440px] p-4 pb-12 sm:p-8 sm:pb-12 lg:p-10">
+              {pilotMode && (
+                <aside
+                  aria-label={t('pilot.label')}
+                  className="bg-accent/5 mb-6 rounded-lg border border-[var(--border-default)] px-4 py-3 text-sm"
+                >
+                  <p className="text-ink font-semibold">{t('pilot.bannerTitle')}</p>
+                  <p className="text-ink mt-1 leading-relaxed">{t('pilot.bannerDescription')}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <label htmlFor="pilot-role" className="text-ink font-medium">
+                      {t('pilot.tryAs')}
+                    </label>
+                    <select
+                      id="pilot-role"
+                      value={role}
+                      disabled={switchingRole}
+                      onChange={(event) => void handlePilotRole(event.target.value)}
+                      className="text-ink bg-surface min-h-11 rounded-md border border-[var(--border-default)] px-3 text-sm focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none disabled:opacity-50"
+                    >
+                      {(['OWNER', 'EXECUTIVE', 'REVIEWER'] as const).map((value) => (
+                        <option key={value} value={value}>
+                          {t(roleLabelKey(value))}
+                        </option>
+                      ))}
+                    </select>
+                    <p role="status" className="text-muted-body text-xs">
+                      {switchingRole ? t('pilot.switchingRole') : t('pilot.roleHint')}
+                    </p>
+                  </div>
+                </aside>
+              )}
               {children}
             </div>
           </main>

@@ -14,19 +14,26 @@ export default async function AppLayout({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-
-  const user = await getCurrentUser();
+  const pilotMode = process.env.PILOT_AUTO_LOGIN === 'true';
+  const [user, { tenant, role }] = await Promise.all([getCurrentUser(), getCurrentTenant()]).catch(
+    (error: unknown) => {
+      if (pilotMode) return redirect({ href: '/pilot-unavailable', locale });
+      throw error;
+    },
+  );
   if (!user) {
     return redirect({ href: '/sign-in', locale });
   }
 
-  const { tenant, role } = await getCurrentTenant();
   if (!tenant || !role) {
     return redirect({ href: '/create-organization', locale });
   }
+  if (pilotMode && tenant.slug !== 'reven-pilot') {
+    return redirect({ href: '/sign-in', locale });
+  }
 
   return (
-    <AppShell user={user} tenant={tenant} role={role}>
+    <AppShell user={user} tenant={tenant} role={role} pilotMode={pilotMode}>
       {children}
     </AppShell>
   );

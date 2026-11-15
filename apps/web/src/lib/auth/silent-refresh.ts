@@ -37,9 +37,14 @@ export async function refreshSession(refreshToken: string): Promise<RefreshResul
  * answers 404 unless PILOT_AUTO_LOGIN=true there, so on production this
  * just returns null. Never throws, for the same reason as `refreshSession`.
  */
-export async function startPilotSession(): Promise<RefreshResult | null> {
+export async function startPilotSession(role?: string): Promise<RefreshResult | null> {
   try {
-    const res = await fetch(`${API_URL}/auth/pilot-session`, { method: 'POST' });
+    const res = await fetch(`${API_URL}/auth/pilot-session`, {
+      method: 'POST',
+      ...(role
+        ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) }
+        : {}),
+    });
     if (!res.ok) return null;
 
     const setCookieHeaders = res.headers.getSetCookie();
