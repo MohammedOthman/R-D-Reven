@@ -15,7 +15,8 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service';
-import { PilotService } from './pilot.service';
+import { PilotService, PILOT_PERSONAS, type PilotRole } from './pilot.service';
+import { PilotSessionDto } from './dto/pilot-session.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { UsersService } from '../users/users.service';
@@ -49,12 +50,27 @@ export class AuthController {
   @ApiOperation({
     summary: 'Pilot mode only: sign in as the shared pilot user. 404 unless PILOT_AUTO_LOGIN=true.',
   })
-  async pilotSession(@Res({ passthrough: true }) reply: FastifyReply) {
+  async pilotSession(
+    @Body() dto: PilotSessionDto,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
     if (!this.configService.get('PILOT_AUTO_LOGIN', { infer: true })) {
       throw new NotFoundException();
     }
-    const { user, tokens } = await this.pilotService.startPilotSession();
+    const savedRole = request.cookies.pilot_role;
+    const role =
+      dto?.role ??
+      (savedRole && Object.hasOwn(PILOT_PERSONAS, savedRole) ? (savedRole as PilotRole) : 'OWNER');
+    const { user, tokens } = await this.pilotService.startPilotSession(role);
     setAuthCookies(reply, tokens, this.cookieOptions());
+    reply.setCookie('pilot_role', role, {
+      ...this.cookieOptions(),
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+    });
     return { user: toPublicUser(user) };
   }
 

@@ -4,11 +4,14 @@ The operating system for revenue shared between companies. Internal, private,
 multi-tenant — governs a company's partnerships with other companies from
 first agreement through verified outcome.
 
-This repository is currently at the **foundation phase**: monorepo, tech
-stack, database/migration pipeline (no product tables yet), and a full design
-system with an App Shell. No product feature (Authentication, Partners,
-Initiatives, etc.) is built yet — see [docs/ROADMAP.md](docs/ROADMAP.md) for
-what's next and in what order.
+The current MVP includes partnerships, initiatives and actions, reviews and
+decisions, agreements, outcomes, evidence, and audit history in English and
+Arabic. The client pilot opens without a login or account setup:
+**https://reven-pilot-uinswy.cranl.net**.
+
+See [docs/PILOT.md](docs/PILOT.md) for the pilot workflow, shared roles, and
+scope. [docs/ROADMAP.md](docs/ROADMAP.md) records the implementation phases;
+the pilot does not represent completion of the full product roadmap.
 
 Read first if you're new here:
 
@@ -16,6 +19,7 @@ Read first if you're new here:
 - [docs/brand/PRODUCT_UNDERSTANDING.md](docs/brand/PRODUCT_UNDERSTANDING.md) — what Reven is and isn't
 - [docs/DECISIONS.md](docs/DECISIONS.md) — why this stack, and every conservative call made where the brand file or PRD had a gap
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the repository is organized and how to add a feature
+- [docs/PILOT.md](docs/PILOT.md) — try the MVP without accounts or passwords
 
 ## Tech stack
 
@@ -117,8 +121,7 @@ pnpm db:generate
 pnpm db:migrate
 ```
 
-There are no product tables yet, so this just establishes the connection and
-the migration history.
+This creates the product tables and applies the migration history.
 
 ### 5. Run everything
 

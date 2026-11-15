@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { apiFetch, apiDownload } from '@/src/lib/api/client';
+import { apiFetch, apiDownload, apiUpload } from '@/src/lib/api/client';
 import { ApiError } from '@/src/lib/api/error';
 
 function jsonResponse(status: number, body?: unknown) {
@@ -64,7 +64,7 @@ describe('apiFetch', () => {
     expect(fetchMock.mock.calls[1]?.[0]).toContain('/auth/refresh');
   });
 
-  it('gives up after one retry and throws the original 401 if refresh also fails', async () => {
+  it('throws the original 401 when renewal fails and pilot mode is disabled', async () => {
     const unauthenticated = {
       code: 'UNAUTHENTICATED',
       message: 'Session expired or invalid.',
@@ -74,11 +74,38 @@ describe('apiFetch', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(401, unauthenticated)) // original call
-      .mockResolvedValueOnce(jsonResponse(401, unauthenticated)); // /auth/refresh also fails
+      .mockResolvedValueOnce(jsonResponse(401, unauthenticated)) // /auth/refresh also fails
+      .mockResolvedValueOnce(jsonResponse(404)); // pilot mode is off
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(apiFetch('/tenants/me')).rejects.toBeInstanceOf(ApiError);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('resumes a pilot tab when its refresh token has expired', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(200))
+      .mockResolvedValueOnce(jsonResponse(200, { tenant: { id: 'pilot' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiFetch('/tenants/me')).resolves.toEqual({ tenant: { id: 'pilot' } });
+    expect(fetchMock.mock.calls[2]?.[0]).toContain('/auth/pilot-session');
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('does not loop when a renewed pilot session is still unauthorized', async () => {
+    const error = { code: 'UNAUTHENTICATED', message: 'Denied' };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(401, error))
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(200))
+      .mockResolvedValueOnce(jsonResponse(401, error));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiFetch('/tenants/me')).rejects.toBeInstanceOf(ApiError);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it('never attempts a silent refresh for a 401 from the auth flow itself (e.g. wrong password)', async () => {
@@ -117,5 +144,35 @@ describe('apiDownload', () => {
       vi.fn().mockResolvedValue(jsonResponse(403, { code: 'FORBIDDEN', message: 'Denied' })),
     );
     await expect(apiDownload('/tenants/t1/evidence/e1/file')).rejects.toBeInstanceOf(ApiError);
+  });
+  it('resumes a pilot session before downloading evidence', async () => {
+    const file = new Blob(['pilot evidence']);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(200))
+      .mockResolvedValueOnce({ ok: true, blob: async () => file });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiDownload('/tenants/p/evidence/e/file')).resolves.toBe(file);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe('apiUpload', () => {
+  beforeEach(() => vi.restoreAllMocks());
+  it('retries the same file after rejoining the pilot', async () => {
+    const form = new FormData();
+    form.append('file', new Blob(['pilot evidence']), 'evidence.txt');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(200))
+      .mockResolvedValueOnce(jsonResponse(200, { saved: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiUpload('/tenants/p/evidence/e/file', form)).resolves.toEqual({ saved: true });
+    expect(fetchMock.mock.calls[3]?.[1]?.body).toBe(form);
+    expect(fetchMock.mock.calls[3]?.[1]?.headers).toBeUndefined();
   });
 });

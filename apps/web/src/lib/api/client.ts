@@ -30,8 +30,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   // those, only protected-resource calls outside the auth flow itself.
   const eligibleForRefresh = res.status === 401 && !options._isRetry && !path.startsWith('/auth/');
   if (eligibleForRefresh) {
-    const refreshed = await rawFetch('/auth/refresh', { method: 'POST' });
-    if (refreshed.ok) {
+    if (await renewSession()) {
       return apiFetch<T>(path, { ...options, _isRetry: true });
     }
   }
@@ -53,8 +52,7 @@ export async function apiUpload<T>(path: string, formData: FormData, _isRetry = 
   });
 
   if (res.status === 401 && !_isRetry) {
-    const refreshed = await rawFetch('/auth/refresh', { method: 'POST' });
-    if (refreshed.ok) {
+    if (await renewSession()) {
       return apiUpload<T>(path, formData, true);
     }
   }
@@ -66,11 +64,18 @@ export async function apiUpload<T>(path: string, formData: FormData, _isRetry = 
 export async function apiDownload(path: string): Promise<Blob> {
   let res = await rawFetch(path, {});
   if (res.status === 401) {
-    const refreshed = await rawFetch('/auth/refresh', { method: 'POST' });
-    if (refreshed.ok) res = await rawFetch(path, {});
+    if (await renewSession()) res = await rawFetch(path, {});
   }
   if (!res.ok) await parseResponse<never>(res);
   return res.blob();
+}
+
+/** Pilot tabs can resume without a login form. The API returns 404 when pilot mode is disabled. */
+async function renewSession(): Promise<boolean> {
+  const refreshed = await rawFetch('/auth/refresh', { method: 'POST' });
+  if (refreshed.ok) return true;
+  const pilot = await rawFetch('/auth/pilot-session', { method: 'POST' });
+  return pilot.ok;
 }
 
 function rawFetch(path: string, options: ApiFetchOptions): Promise<Response> {

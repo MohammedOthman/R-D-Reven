@@ -15,6 +15,10 @@ export function signOut() {
   return apiFetch<void>('/auth/sign-out', { method: 'POST' });
 }
 
+export function switchPilotRole(role: 'OWNER' | 'EXECUTIVE' | 'REVIEWER') {
+  return apiFetch<{ user: AuthUser }>('/auth/pilot-session', { method: 'POST', body: { role } });
+}
+
 export function requestPasswordReset(input: { email: string }) {
   return apiFetch<void>('/auth/request-password-reset', { method: 'POST', body: input });
 }

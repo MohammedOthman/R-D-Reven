@@ -1,5 +1,5 @@
 import createMiddleware from 'next-intl/middleware';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { routing } from './src/i18n/routing';
 import {
   ACCESS_TOKEN_COOKIE,
@@ -29,19 +29,43 @@ const PILOT_AUTO_LOGIN = process.env.PILOT_AUTO_LOGIN === 'true';
  * client side — a form submission never goes through this proxy at all.
  */
 export default async function proxy(request: NextRequest) {
+  const segments = request.nextUrl.pathname.split('/').filter(Boolean);
+  const locale = routing.locales.find((value) => value === segments[0]) ?? routing.defaultLocale;
+  const page = segments.at(-1);
+  // Recovery itself must not bootstrap a session, otherwise an unavailable
+  // API would cause a redirect loop instead of showing the retry action.
+  if (PILOT_AUTO_LOGIN && page === 'pilot-unavailable') return intlMiddleware(request);
+  const pilotAccountPage =
+    PILOT_AUTO_LOGIN &&
+    [
+      'sign-in',
+      'sign-up',
+      'forgot-password',
+      'reset-password',
+      'accept-invite',
+      'create-organization',
+      'administration',
+    ].includes(page ?? '');
   const hasAccessToken = request.cookies.has(ACCESS_TOKEN_COOKIE);
   const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
+  const savedPilotRole = request.cookies.get('pilot_role')?.value;
+  const pilotRole =
+    savedPilotRole && ['OWNER', 'EXECUTIVE', 'REVIEWER'].includes(savedPilotRole)
+      ? savedPilotRole
+      : undefined;
 
-  if (hasAccessToken || (!refreshToken && !PILOT_AUTO_LOGIN)) {
+  if ((!pilotAccountPage && hasAccessToken) || (!refreshToken && !PILOT_AUTO_LOGIN)) {
     return intlMiddleware(request);
   }
 
   // In pilot mode, a refresh token that no longer works falls back to a
   // fresh pilot session rather than to the sign-in page.
   const refreshed =
-    (refreshToken ? await refreshSession(refreshToken) : null) ??
-    (PILOT_AUTO_LOGIN ? await startPilotSession() : null);
+    (refreshToken && !pilotAccountPage ? await refreshSession(refreshToken) : null) ??
+    (PILOT_AUTO_LOGIN ? await startPilotSession(pilotRole) : null);
   if (!refreshed) {
+    if (PILOT_AUTO_LOGIN)
+      return NextResponse.redirect(new URL(`/${locale}/pilot-unavailable`, request.url));
     return intlMiddleware(request);
   }
 
@@ -49,7 +73,9 @@ export default async function proxy(request: NextRequest) {
     headers: withReplacedCookie(request.headers, ACCESS_TOKEN_COOKIE, refreshed.newAccessToken),
   });
 
-  const response = intlMiddleware(requestWithFreshCookie);
+  const response = pilotAccountPage
+    ? NextResponse.redirect(new URL(`/${locale}`, request.url))
+    : intlMiddleware(requestWithFreshCookie);
   for (const cookie of refreshed.setCookieHeaders) {
     response.headers.append('set-cookie', cookie);
   }

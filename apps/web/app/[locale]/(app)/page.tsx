@@ -18,6 +18,7 @@ import { getDashboard } from '@/src/lib/dashboard/session';
 import { getPartnerships } from '@/src/lib/partnerships/session';
 import { getPartners } from '@/src/lib/partners/session';
 import { getMemberDirectory } from '@/src/lib/members/session';
+import { PilotGuide } from '@/src/components/PilotGuide';
 
 // No PRD matrix row is named "Command Center" — US-006 traces it to
 // PORT/RPT, so this borrows "Portfolio read"'s shape (Reviewer included,
@@ -127,44 +128,49 @@ export default async function CommandCenterPage({
   return (
     <div className="flex flex-col gap-8">
       <PageHeader eyebrow={t('eyebrow')} title={t('title')} description={t('description')} />
-      {partners.length === 0 && ['OWNER', 'ADMIN', 'MANAGER'].includes(role) && (
-        <Card className="border-accent/20">
-          <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="max-w-xl">
-                <h2 className="font-display text-ink text-xl font-bold">
-                  {t('gettingStarted.title')}
-                </h2>
-                <p className="text-muted-body mt-2 text-sm leading-relaxed">
-                  {t('gettingStarted.description')}
-                </p>
+      {process.env.PILOT_AUTO_LOGIN === 'true' && <PilotGuide role={role} />}
+      {process.env.PILOT_AUTO_LOGIN !== 'true' &&
+        partners.length === 0 &&
+        ['OWNER', 'ADMIN', 'MANAGER'].includes(role) && (
+          <Card className="border-accent/20">
+            <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="max-w-xl">
+                  <h2 className="font-display text-ink text-xl font-bold">
+                    {t('gettingStarted.title')}
+                  </h2>
+                  <p className="text-muted-body mt-2 text-sm leading-relaxed">
+                    {t('gettingStarted.description')}
+                  </p>
+                </div>
+                <Link
+                  prefetch={false}
+                  href="/partnerships?create=partner"
+                  className={buttonVariants({ variant: 'primary' })}
+                >
+                  {t('gettingStarted.action')}
+                </Link>
               </div>
-              <Link
-                prefetch={false}
-                href="/partnerships?create=partner"
-                className={buttonVariants({ variant: 'primary' })}
-              >
-                {t('gettingStarted.action')}
-              </Link>
-            </div>
-            <ol className="grid gap-4 border-t border-[var(--border-subtle)] pt-6 sm:grid-cols-3">
-              {(['partner', 'relationship', 'initiative'] as const).map((step, index) => (
-                <li key={step} className="flex items-start gap-3">
-                  <span className="text-muted-body flex size-7 shrink-0 items-center justify-center rounded-full border border-[var(--border-default)] text-sm font-semibold">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <p className="text-ink text-sm font-semibold">{t(`gettingStarted.${step}`)}</p>
-                    <p className="text-muted-body mt-1 text-[13px] leading-relaxed">
-                      {t(`gettingStarted.${step}Description`)}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-      )}
+              <ol className="grid gap-4 border-t border-[var(--border-subtle)] pt-6 sm:grid-cols-3">
+                {(['partner', 'relationship', 'initiative'] as const).map((step, index) => (
+                  <li key={step} className="flex items-start gap-3">
+                    <span className="text-muted-body flex size-7 shrink-0 items-center justify-center rounded-full border border-[var(--border-default)] text-sm font-semibold">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <p className="text-ink text-sm font-semibold">
+                        {t(`gettingStarted.${step}`)}
+                      </p>
+                      <p className="text-muted-body mt-1 text-[13px] leading-relaxed">
+                        {t(`gettingStarted.${step}Description`)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+        )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {kpis.map((kpi) => (

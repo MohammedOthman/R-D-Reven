@@ -877,5 +877,36 @@
       "states": "States",
       "navigation": "Navigation"
     }
+  },
+  "pilot": {
+    "label": "Pilot workspace",
+    "sharedAccess": "Shared access",
+    "bannerTitle": "Pilot workspace · No sign-in required",
+    "bannerDescription": "Everyone using this link shares the same workspace and can see changes. Use sample data while trying the product.",
+    "guideTitle": "Try the partnership workflow",
+    "guideDescription": "Start with a partner, agree the next action, then record a review and its results. Your changes are saved in this shared pilot workspace.",
+    "startAction": "Add a partner",
+    "partnerTitle": "Build a partnership",
+    "partnerDescription": "Add a partner, then open Relationship to set an owner and objective.",
+    "initiativeTitle": "Plan the work",
+    "initiativeDescription": "Create an initiative for the partnership and assign its actions.",
+    "reviewTitle": "Record a review",
+    "reviewDescription": "Capture decisions and follow-up actions. Switch to Executive for approvals.",
+    "outcomeTitle": "Review the result",
+    "outcomeDescription": "Record an outcome and attach evidence. Switch to Reviewer to verify it.",
+    "unavailableTitle": "The pilot is temporarily unavailable",
+    "unavailableDescription": "We could not open the workspace. Try again in a moment. No account or password is needed.",
+    "retryAction": "Open pilot workspace",
+    "tryAs": "Try as",
+    "personaRole": "Pilot {role}",
+    "roleHint": "Switch roles to test approvals and verification.",
+    "switchingRole": "Switching role…",
+    "switchError": "Could not switch roles. Try again.",
+    "reviewerGuideTitle": "Verify an assigned outcome",
+    "reviewerGuideDescription": "Open an outcome assigned to Pilot Reviewer, inspect its evidence, then verify it or request changes. Switch to Owner to create and submit another outcome.",
+    "reviewerAction": "Review outcomes",
+    "executiveGuideTitle": "Review a pending decision",
+    "executiveGuideDescription": "Open a review and approve or reject a decision awaiting approval. Switch to Owner to record a new decision requiring approval.",
+    "executiveAction": "Open reviews"
   }
 }
