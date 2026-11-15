@@ -1,9 +1,11 @@
 'use client';
 
+import { PasswordInput } from '@/src/components/PasswordInput';
+
 import { useState, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { CheckCircle2, XCircle } from 'lucide-react';
-import { Card, CardContent, FormField, Input, Button } from '@revn/ui';
+import { Card, CardContent, FormField, Button } from '@revn/ui';
 import { Link } from '@/src/i18n/navigation';
 import { resetPassword } from '@/src/lib/auth/client';
 
@@ -79,7 +81,7 @@ export function ResetPasswordForm({ token }: { token?: string }) {
             hint={error ? undefined : t('passwordHint')}
             error={error ?? undefined}
           >
-            <Input
+            <PasswordInput
               id="reset-password"
               type="password"
               autoComplete="new-password"

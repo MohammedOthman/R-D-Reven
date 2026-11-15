@@ -1,5 +1,7 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -61,6 +63,7 @@ export function ReviewsContent({
   members: MemberSummary[];
   currentRole: MembershipRole;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('reviews');
   const router = useRouter();
   const canWrite = WRITE_ROLES.includes(currentRole);
@@ -90,7 +93,7 @@ export function ReviewsContent({
     {
       key: 'scheduledFor',
       header: t('scheduledForHeader'),
-      render: (r) => new Date(r.scheduledFor).toLocaleDateString(),
+      render: (r) => formatDate(r.scheduledFor),
     },
     {
       key: 'stage',
@@ -211,7 +214,7 @@ function CreateReviewDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('createDialogTitle')}</DialogTitle>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -46,6 +48,7 @@ export function AuditContent({
   members: MemberSummary[];
   currentRole: MembershipRole;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('audit');
   const [filters, setFilters] = useState<AuditEventFilters>(EMPTY_FILTERS);
   const [events, setEvents] = useState(initialEvents);
@@ -94,7 +97,7 @@ export function AuditContent({
     {
       key: 'createdAt',
       header: t('timeHeader'),
-      render: (e) => new Date(e.createdAt).toLocaleString(),
+      render: (e) => formatDate(e.createdAt, true),
     },
     {
       key: 'actor',
@@ -258,7 +261,7 @@ export function AuditContent({
                   <p className="text-muted-body text-xs tracking-[var(--tracking-label)] uppercase">
                     {t('timeHeader')}
                   </p>
-                  <p className="text-ink">{new Date(selected.createdAt).toLocaleString()}</p>
+                  <p className="text-ink">{formatDate(selected.createdAt, true)}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-muted-body text-xs tracking-[var(--tracking-label)] uppercase">

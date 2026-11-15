@@ -110,7 +110,7 @@ export function AddActionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('addActionButton')}</DialogTitle>
@@ -271,7 +271,7 @@ export function UpdateActionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSaveNote} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{action.title}</DialogTitle>

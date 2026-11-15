@@ -64,7 +64,7 @@ export function DataTable<T>({
     >
       <table className="font-body w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b border-[var(--border-default)]">
+          <tr className="bg-canvas/60 border-b border-[var(--border-default)]">
             {columns.map((column) => {
               const isSorted = sortKey === column.key;
               const SortIcon = !isSorted
@@ -76,9 +76,18 @@ export function DataTable<T>({
                 <th
                   key={column.key}
                   scope="col"
+                  aria-sort={
+                    column.sortable
+                      ? isSorted
+                        ? sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                      : undefined
+                  }
                   style={column.width ? { width: column.width } : undefined}
                   className={cn(
-                    'font-label text-muted-tertiary px-4 py-3 text-xs font-medium tracking-[var(--tracking-label)] uppercase',
+                    'text-muted-body px-4 py-3 text-[13px] font-semibold whitespace-nowrap',
                     alignClass[column.align ?? 'start'],
                   )}
                 >
@@ -86,10 +95,7 @@ export function DataTable<T>({
                     <button
                       type="button"
                       onClick={() => onSortChange(column.key)}
-                      className="hover:text-ink inline-flex items-center gap-1 rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none"
-                      aria-sort={
-                        isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'
-                      }
+                      className="hover:text-ink inline-flex min-h-11 items-center gap-1 rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none"
                     >
                       {column.header}
                       <SortIcon className="size-3.5" aria-hidden="true" />
@@ -124,20 +130,44 @@ export function DataTable<T>({
             data.map((row) => (
               <tr
                 key={getRowId(row)}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onClick={
+                  onRowClick
+                    ? (event) => {
+                        if (
+                          !(event.target as HTMLElement).closest('a,button,input,select,textarea')
+                        )
+                          onRowClick(row);
+                      }
+                    : undefined
+                }
                 className={cn(
-                  'border-b border-[var(--border-subtle)] last:border-0',
+                  'border-b border-[var(--border-subtle)] transition-colors last:border-0',
                   onRowClick && 'hover:bg-canvas cursor-pointer',
                 )}
               >
-                {columns.map((column) => (
+                {columns.map((column, columnIndex) => (
                   <td
                     key={column.key}
-                    className={cn('text-ink px-4 py-3', alignClass[column.align ?? 'start'])}
+                    className={cn(
+                      'text-ink px-4 py-3.5 align-middle',
+                      alignClass[column.align ?? 'start'],
+                    )}
                   >
-                    {column.render
-                      ? column.render(row)
-                      : String((row as Record<string, unknown>)[column.key] ?? '—')}
+                    {onRowClick && columnIndex === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => onRowClick(row)}
+                        className="text-accent-deep min-h-11 w-full rounded-sm text-start font-medium underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none"
+                      >
+                        {column.render
+                          ? column.render(row)
+                          : String((row as Record<string, unknown>)[column.key] ?? '—')}
+                      </button>
+                    ) : column.render ? (
+                      column.render(row)
+                    ) : (
+                      String((row as Record<string, unknown>)[column.key] ?? '—')
+                    )}
                   </td>
                 ))}
               </tr>

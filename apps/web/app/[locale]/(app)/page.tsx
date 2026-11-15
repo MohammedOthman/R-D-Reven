@@ -1,15 +1,9 @@
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import {
-  AlertTriangle,
-  CalendarClock,
-  Gavel,
-  Handshake,
-  Plug,
-  Rocket,
-  ShieldCheck,
-} from 'lucide-react';
+import { AlertTriangle, CalendarClock, Gavel, Handshake, Rocket, ShieldCheck } from 'lucide-react';
 import {
   Card,
+  PageHeader,
+  buttonVariants,
   CardContent,
   CardHeader,
   CardTitle,
@@ -17,6 +11,7 @@ import {
   EmptyState,
   StatusBadge,
 } from '@revn/ui';
+import { WorkspaceDate } from '@/src/components/WorkspaceFormat';
 import { Link } from '@/src/i18n/navigation';
 import { getCurrentTenant } from '@/src/lib/tenant/session';
 import { getDashboard } from '@/src/lib/dashboard/session';
@@ -131,19 +126,52 @@ export default async function CommandCenterPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <span className="font-label text-muted-tertiary text-xs font-medium tracking-[var(--tracking-label-wide)] uppercase">
-          {t('eyebrow')}
-        </span>
-        <h1 className="font-display text-ink mt-1 text-2xl font-extrabold tracking-[var(--tracking-display)]">
-          {t('title')}
-        </h1>
-        <p className="font-body text-muted-body mt-1 text-sm">{t('description')}</p>
-      </div>
+      <PageHeader eyebrow={t('eyebrow')} title={t('title')} description={t('description')} />
+      {partners.length === 0 && ['OWNER', 'ADMIN', 'MANAGER'].includes(role) && (
+        <Card className="border-accent/20">
+          <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="max-w-xl">
+                <h2 className="font-display text-ink text-xl font-bold">
+                  {t('gettingStarted.title')}
+                </h2>
+                <p className="text-muted-body mt-2 text-sm leading-relaxed">
+                  {t('gettingStarted.description')}
+                </p>
+              </div>
+              <Link
+                href="/partnerships?create=partner"
+                className={buttonVariants({ variant: 'primary' })}
+              >
+                {t('gettingStarted.action')}
+              </Link>
+            </div>
+            <ol className="grid gap-4 border-t border-[var(--border-subtle)] pt-6 sm:grid-cols-3">
+              {(['partner', 'relationship', 'initiative'] as const).map((step, index) => (
+                <li key={step} className="flex items-start gap-3">
+                  <span className="text-muted-body flex size-7 shrink-0 items-center justify-center rounded-full border border-[var(--border-default)] text-sm font-semibold">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-ink text-sm font-semibold">{t(`gettingStarted.${step}`)}</p>
+                    <p className="text-muted-body mt-1 text-[13px] leading-relaxed">
+                      {t(`gettingStarted.${step}Description`)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {kpis.map((kpi) => (
-          <Link key={kpi.key} href={kpi.href} className="block">
+          <Link
+            key={kpi.key}
+            href={kpi.href}
+            className="focus-visible:ring-accent block rounded-lg focus-visible:ring-2 focus-visible:outline-none"
+          >
             <Card className="h-full transition-shadow hover:shadow-md">
               <CardContent className="flex flex-col gap-2 pt-5">
                 <div
@@ -156,7 +184,7 @@ export default async function CommandCenterPage({
                   {kpi.icon}
                 </div>
                 <p className="font-display text-ink text-2xl font-extrabold">{kpi.value}</p>
-                <p className="text-muted-body text-xs">{t(`kpi.${kpi.key}`)}</p>
+                <p className="text-muted-body text-[13px]">{t(`kpi.${kpi.key}`)}</p>
               </CardContent>
             </Card>
           </Link>
@@ -170,7 +198,11 @@ export default async function CommandCenterPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {!hasExceptions ? (
-            <EmptyState title={t('noExceptionsTitle')} description={t('noExceptionsDescription')} />
+            <EmptyState
+              className="border-0 py-8"
+              title={t('noExceptionsTitle')}
+              description={t('noExceptionsDescription')}
+            />
           ) : (
             <>
               {dashboard.exceptions.atRiskPartnerships.map((p) => (
@@ -239,7 +271,7 @@ export default async function CommandCenterPage({
                     <span
                       className={overdue ? 'text-status-alert text-xs' : 'text-muted-body text-xs'}
                     >
-                      {p.nextReviewAt ? new Date(p.nextReviewAt).toLocaleDateString() : '—'}
+                      {p.nextReviewAt ? <WorkspaceDate value={p.nextReviewAt} /> : '—'}
                     </span>
                   </Link>
                 );
@@ -291,20 +323,6 @@ export default async function CommandCenterPage({
                 </Link>
               ))
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('integrationsTitle')}</CardTitle>
-            <CardDescription>{t('integrationsDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <EmptyState
-              icon={<Plug className="size-6" aria-hidden="true" />}
-              title={t('noIntegrationsTitle')}
-              description={t('noIntegrationsDescription')}
-            />
           </CardContent>
         </Card>
       </div>

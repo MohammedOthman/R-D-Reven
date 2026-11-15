@@ -9,11 +9,12 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import { EvidenceService } from './evidence.service';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { ReplaceEvidenceDto } from './dto/replace-evidence.dto';
@@ -51,6 +52,30 @@ export class EvidenceController {
   async get(@Param('tenantId') tenantId: string, @Param('evidenceId') evidenceId: string) {
     const evidence = await this.evidenceService.get(tenantId, evidenceId);
     return { evidence };
+  }
+
+  @Get(':evidenceId/file')
+  @RequireRole(...READ_ROLES)
+  @ApiOperation({ summary: 'Download an evidence file within the caller’s organization.' })
+  async downloadFile(
+    @Param('tenantId') tenantId: string,
+    @Param('evidenceId') evidenceId: string,
+    @CurrentUser() claims: JwtPayload,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const file = await this.evidenceService.getFile(tenantId, evidenceId, claims.sub);
+    const encodedName = encodeURIComponent(file.fileName).replace(
+      /['()*]/g,
+      (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
+    reply.header('Content-Type', 'application/octet-stream');
+    reply.header(
+      'Content-Disposition',
+      `attachment; filename="evidence"; filename*=UTF-8''${encodedName}`,
+    );
+    reply.header('Cache-Control', 'private, no-store');
+    reply.header('X-Content-Type-Options', 'nosniff');
+    return file.content;
   }
 
   @Post()

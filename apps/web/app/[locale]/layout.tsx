@@ -10,7 +10,10 @@ import { fontVariables } from '@/src/lib/fonts';
 import '../globals.css';
 
 export const metadata: Metadata = {
-  title: 'Reven',
+  title: 'Reven · Partnership workspace',
+  applicationName: 'Reven',
+  icons: { icon: '/brand/reven-mark.svg' },
+  robots: { index: false, follow: false },
   description: 'The operating system for revenue shared between companies.',
 };
 

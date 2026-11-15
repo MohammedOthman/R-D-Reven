@@ -33,12 +33,12 @@
 
   --color-muted-body: #5b6172;
   --color-muted-caption: #6b7180;
-  --color-muted-tertiary: #8a8f9c;
-  --color-muted-micro: #9aa3b5;
+  --color-muted-tertiary: #6b7180;
+  --color-muted-micro: #6b7180;
 
-  --color-status-caution: #c98a1b;
+  --color-status-caution: #93610e;
   --color-status-alert: #c0392b;
-  --color-status-positive: #1f8a5b;
+  --color-status-positive: #176b48;
 
   /* ---- Radii — institutional, not playful (§01 brand belief) ---- */
   --radius-sm: 6px;
@@ -61,9 +61,9 @@
 
 /* ---- Runtime tokens that aren't Tailwind theme keys ---- */
 :root {
-  --surface-radial-from: #f0eaff;
+  --surface-radial-from: #edf2ff;
   --surface-radial-to: var(--color-canvas);
-  --surface-navy-gradient-from: #1f1740;
+  --surface-navy-gradient-from: #172747;
   --surface-navy-gradient-to: var(--color-navy);
 
   --border-subtle: rgb(15 22 41 / 0.08);
@@ -82,7 +82,7 @@
      density. The brand file's 104px/78-84px margins are calibrated for
      full-bleed slides; scaled down here for a data-dense app shell.
      See docs/brand/DECISIONS.md. */
-  --shell-sidebar-width: 280px;
+  --shell-sidebar-width: 248px;
   --shell-sidebar-collapsed-width: 72px;
   --shell-topbar-height: 64px;
   --shell-content-padding-desktop: 32px;

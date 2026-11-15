@@ -286,7 +286,7 @@ function InviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('inviteDialogTitle')}</DialogTitle>

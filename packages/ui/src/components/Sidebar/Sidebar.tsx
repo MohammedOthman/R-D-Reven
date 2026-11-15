@@ -32,6 +32,7 @@ export interface SidebarProps {
   /** Defaults to a plain anchor. Pass next/link's `Link` for client-side navigation. */
   linkComponent?: ElementType<{ href: string; className?: string; children?: ReactNode }>;
   className?: string;
+  navigationLabel?: string;
 }
 
 /**
@@ -53,6 +54,7 @@ export function Sidebar({
   footerSlot,
   linkComponent: LinkComponent = 'a',
   className,
+  navigationLabel = 'Primary navigation',
 }: SidebarProps) {
   return (
     <aside
@@ -63,7 +65,7 @@ export function Sidebar({
       style={{
         width: collapsed ? 'var(--shell-sidebar-collapsed-width)' : 'var(--shell-sidebar-width)',
       }}
-      aria-label="Primary"
+      aria-label={navigationLabel}
     >
       <div
         className={cn(
@@ -79,7 +81,7 @@ export function Sidebar({
             aria-label={toggleCollapsedLabel}
             aria-pressed={collapsed}
             title={collapsed ? toggleCollapsedLabel : undefined}
-            className="flex size-8 shrink-0 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none"
+            className="flex size-11 shrink-0 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none"
           >
             <PanelLeft className="size-[18px]" aria-hidden="true" />
           </button>
@@ -90,9 +92,7 @@ export function Sidebar({
         {sections.map((section) => (
           <div key={section.id} className="mb-6 last:mb-0">
             {section.label && !collapsed && (
-              <p className="font-label mb-2 px-2 text-xs font-medium tracking-[var(--tracking-label)] text-white/40 uppercase">
-                {section.label}
-              </p>
+              <p className="mb-2 px-2 text-[13px] font-medium text-white/60">{section.label}</p>
             )}
             <ul className="flex flex-col gap-0.5">
               {section.items.map((item) => {
@@ -109,11 +109,11 @@ export function Sidebar({
                   </>
                 );
                 const sharedClasses = cn(
-                  'flex items-center gap-3 rounded-md px-2.5 py-2 font-body text-sm font-medium transition-colors',
+                  'flex min-h-11 items-center gap-3 rounded-md px-2.5 py-2 font-body text-sm font-medium transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)]',
                   collapsed && 'justify-center',
                   isActive
-                    ? 'bg-white/10 text-white'
+                    ? 'bg-white/15 text-white shadow-[inset_3px_0_0_var(--color-accent)] rtl:shadow-[inset_-3px_0_0_var(--color-accent)]'
                     : 'text-white/70 hover:bg-white/5 hover:text-white',
                   item.comingLater && 'pointer-events-none opacity-50',
                 );
@@ -135,6 +135,7 @@ export function Sidebar({
                         className={sharedClasses}
                         aria-current={isActive ? 'page' : undefined}
                         title={itemTitle}
+                        aria-label={item.label}
                       >
                         {content}
                       </LinkComponent>

@@ -1,5 +1,7 @@
 'use client';
 
+import { PasswordInput } from '@/src/components/PasswordInput';
+
 import { useState, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { XCircle } from 'lucide-react';
@@ -98,7 +100,7 @@ export function AcceptInviteForm({
             hint={t('passwordHint')}
             error={error ?? undefined}
           >
-            <Input
+            <PasswordInput
               id="invite-password"
               type="password"
               autoComplete="new-password"

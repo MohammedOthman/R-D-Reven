@@ -1,5 +1,7 @@
 'use client';
 
+import { PasswordInput } from '@/src/components/PasswordInput';
+
 import { useState, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent, FormField, Input, Button } from '@revn/ui';
@@ -90,7 +92,7 @@ export function SignUpForm() {
             hint={t('passwordHint')}
             error={errors.password}
           >
-            <Input
+            <PasswordInput
               id="signup-password"
               type="password"
               autoComplete="new-password"

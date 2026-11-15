@@ -70,7 +70,7 @@ export const SelectItem = forwardRef<HTMLDivElement, SelectItemProps>(
     <SelectPrimitive.Item
       ref={ref}
       className={cn(
-        'relative flex w-full cursor-pointer items-center rounded-sm py-2 ps-8 pe-2 text-sm select-none',
+        'relative flex min-h-11 w-full cursor-pointer items-center rounded-sm py-2 ps-8 pe-3 text-sm select-none',
         'data-[highlighted]:bg-canvas outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}

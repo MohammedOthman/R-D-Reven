@@ -1,7 +1,11 @@
 'use client';
 
-import { apiFetch, apiUpload } from '../api/client';
+import { apiDownload, apiFetch, apiUpload } from '../api/client';
 import type { Evidence, EvidenceClassification } from './types';
+
+export function downloadEvidenceFile(tenantId: string, evidenceId: string) {
+  return apiDownload(`/tenants/${tenantId}/evidence/${evidenceId}/file`);
+}
 
 export function createEvidence(
   tenantId: string,

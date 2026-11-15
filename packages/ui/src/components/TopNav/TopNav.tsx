@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { Menu } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
@@ -8,6 +8,8 @@ export interface TopNavProps {
   onToggleSidebar?: () => void;
   /** Localized label for the sidebar toggle button — this component doesn't own copy. */
   toggleSidebarLabel?: string;
+  sidebarOpen?: boolean;
+  toggleButtonRef?: Ref<HTMLButtonElement>;
   tenantSlot?: ReactNode;
   userSlot?: ReactNode;
   className?: string;
@@ -16,6 +18,8 @@ export interface TopNavProps {
 export function TopNav({
   onToggleSidebar,
   toggleSidebarLabel = 'Toggle navigation',
+  sidebarOpen = false,
+  toggleButtonRef,
   tenantSlot,
   userSlot,
   className,
@@ -27,13 +31,16 @@ export function TopNav({
         className,
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         {onToggleSidebar && (
           <button
+            ref={toggleButtonRef}
             type="button"
             onClick={onToggleSidebar}
             aria-label={toggleSidebarLabel}
-            className="text-muted-body hover:bg-canvas flex size-9 items-center justify-center rounded-md focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none lg:hidden"
+            aria-expanded={sidebarOpen}
+            aria-controls="mobile-navigation"
+            className="text-muted-body hover:bg-canvas flex size-11 shrink-0 items-center justify-center rounded-md focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none lg:hidden"
           >
             <Menu className="size-5" aria-hidden="true" />
           </button>

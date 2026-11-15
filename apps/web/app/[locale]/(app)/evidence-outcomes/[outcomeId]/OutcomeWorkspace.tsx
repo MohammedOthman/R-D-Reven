@@ -1,9 +1,11 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft, Plus, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, Upload, Download, ExternalLink } from 'lucide-react';
 import {
   PageHeader,
   Card,
@@ -34,7 +36,11 @@ import {
 import { useRouter } from '@/src/i18n/navigation';
 import { updateOutcome } from '@/src/lib/outcomes/client';
 import { createContribution } from '@/src/lib/contributions/client';
-import { createEvidence, uploadEvidenceFile } from '@/src/lib/evidence/client';
+import {
+  createEvidence,
+  uploadEvidenceFile,
+  downloadEvidenceFile,
+} from '@/src/lib/evidence/client';
 import { ApiError } from '@/src/lib/api/error';
 import type { MembershipRole } from '@/src/lib/tenant/types';
 import type { MemberSummary } from '@/src/lib/members/types';
@@ -87,6 +93,7 @@ export function OutcomeWorkspace({
   currentRole: MembershipRole;
   currentUserId: string;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('evidenceOutcomes');
   const router = useRouter();
   const canSubmit = SUBMIT_ROLES.includes(currentRole);
@@ -233,7 +240,7 @@ export function OutcomeWorkspace({
               >
                 <p className="text-ink truncate text-sm font-medium">{c.narrative}</p>
                 <p className="text-muted-body truncate text-xs">
-                  {c.type} · {memberName(c.actorId)} · {new Date(c.observedAt).toLocaleDateString()}
+                  {c.type} · {memberName(c.actorId)} · {formatDate(c.observedAt)}
                 </p>
               </div>
             ))
@@ -385,7 +392,7 @@ function SubmitDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('submitDialogTitle')}</DialogTitle>
@@ -466,7 +473,7 @@ function VerifyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('verifyDialogTitle')}</DialogTitle>
@@ -548,7 +555,7 @@ function ReasonDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t(titleKey)}</DialogTitle>
@@ -640,7 +647,7 @@ function AddContributionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('addContributionButton')}</DialogTitle>
@@ -783,7 +790,7 @@ function AddEvidenceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('addEvidenceButton')}</DialogTitle>
@@ -861,9 +868,30 @@ function EvidenceRow({
   canWrite: boolean;
   onSaved: () => void;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('evidenceOutcomes');
   const [uploading, setUploading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const sourceUrl = /^https?:\/\//i.test(evidence.source) ? evidence.source : null;
+  const handleDownload = async () => {
+    setDownloading(true);
+    setError(null);
+    try {
+      const blob = await downloadEvidenceFile(tenantId, evidence.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = evidence.fileName ?? 'evidence';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setError(errorMessage(err, t('downloadError')));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleFileSelect = async (fileList: FileList | null) => {
     const selected = fileList?.[0];
@@ -882,28 +910,57 @@ function EvidenceRow({
 
   return (
     <div className="rounded-md border border-[var(--border-default)] px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-ink truncate text-sm font-medium">{evidence.source}</p>
+          <p className="text-ink text-sm font-medium break-words">{evidence.source}</p>
           <p className="text-muted-body truncate text-xs">
-            {t(`classification.${evidence.classification}`)} ·{' '}
-            {new Date(evidence.observedAt).toLocaleDateString()}
+            {t(`classification.${evidence.classification}`)} · {formatDate(evidence.observedAt)}
             {evidence.fileName ? ` · ${evidence.fileName}` : ''}
           </p>
-          {error && <p className="text-status-alert text-xs">{error}</p>}
+          {error && (
+            <p role="alert" className="text-status-alert text-[13px]">
+              {error}
+            </p>
+          )}
         </div>
-        {canWrite && !evidence.storageKey && (
-          <label className="text-muted-body flex cursor-pointer items-center gap-1 text-xs hover:underline">
-            <Upload className="size-3.5" aria-hidden="true" />
-            {uploading ? t('uploading') : t('uploadFileButton')}
-            <input
-              type="file"
-              className="hidden"
-              disabled={uploading}
-              onChange={(e) => handleFileSelect(e.target.files)}
-            />
-          </label>
-        )}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {evidence.storageKey && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              loading={downloading}
+              leadingIcon={<Download className="size-4" aria-hidden="true" />}
+              onClick={handleDownload}
+            >
+              {t('downloadFileButton')}
+            </Button>
+          )}
+          {sourceUrl && (
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-deep inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-medium underline-offset-4 hover:underline"
+            >
+              <ExternalLink className="size-4" aria-hidden="true" />
+              {t('openSourceButton')}
+            </a>
+          )}
+          {canWrite && !evidence.storageKey && (
+            <label className="text-muted-body focus-within:ring-accent relative flex min-h-11 cursor-pointer items-center gap-1 rounded-md px-3 text-sm focus-within:ring-2 hover:underline">
+              <Upload className="size-3.5" aria-hidden="true" />
+              {uploading ? t('uploading') : t('uploadFileButton')}
+              <input
+                type="file"
+                className="absolute inset-0 w-full cursor-pointer opacity-0"
+                aria-label={t('uploadFileButton')}
+                disabled={uploading}
+                onChange={(e) => handleFileSelect(e.target.files)}
+              />
+            </label>
+          )}
+        </div>
       </div>
     </div>
   );

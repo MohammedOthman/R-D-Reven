@@ -20,11 +20,11 @@
     "audit": "Audit"
   },
   "commandCenter": {
-    "eyebrow": "Reven — Command Center",
-    "title": "Command Center",
+    "eyebrow": "Workspace",
+    "title": "Your partnership overview",
     "description": "What needs attention across your portfolio right now.",
     "guestTitle": "Nothing shared with you yet",
-    "guestDescription": "An owner or admin can share specific partnership objects with you — ask them if you're expecting access.",
+    "guestDescription": "External partner access is not available yet. Ask your organization administrator about access.",
     "errorTitle": "Couldn't load the dashboard",
     "errorDescription": "Something went wrong fetching your portfolio data. Try refreshing the page.",
     "kpi": {
@@ -35,8 +35,8 @@
       "reviewsDue": "Reviews due",
       "outcomesAwaitingVerification": "Outcomes awaiting verification"
     },
-    "exceptionsTitle": "Exceptions",
-    "exceptionsDescription": "Everything currently in an exception state across the portfolio.",
+    "exceptionsTitle": "Needs attention",
+    "exceptionsDescription": "Review the partnerships, actions, and outcomes that need a decision.",
     "noExceptionsTitle": "No exceptions right now",
     "noExceptionsDescription": "Nothing at risk, blocked or rejected across your portfolio.",
     "exceptionType": {
@@ -66,7 +66,18 @@
     "integrationsTitle": "Integration health",
     "integrationsDescription": "Connections, sync jobs and errors across external systems.",
     "noIntegrationsTitle": "No integrations connected yet",
-    "noIntegrationsDescription": "Connect a CRM or other source system to see sync health here."
+    "noIntegrationsDescription": "Connect a CRM or other source system to see sync health here.",
+    "gettingStarted": {
+      "title": "Start with your first partnership",
+      "description": "Add a partner company, define your relationship, then give the team a shared objective.",
+      "action": "Add your first partner",
+      "partner": "Add a partner",
+      "partnerDescription": "Keep the company and its contact details together.",
+      "relationship": "Define the relationship",
+      "relationshipDescription": "Set an owner, an objective, and the next review date.",
+      "initiative": "Plan the work",
+      "initiativeDescription": "Create an initiative and assign the next action."
+    }
   },
   "common": {
     "comingLater": "Later",
@@ -79,7 +90,17 @@
     "roleExecutive": "Executive",
     "roleManager": "Manager",
     "roleReviewer": "Reviewer",
-    "roleGuest": "Guest"
+    "roleGuest": "Guest",
+    "navigation": "Navigation",
+    "navigationDescription": "Open a workspace page or manage your account.",
+    "skipToContent": "Skip to content",
+    "close": "Close",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "workspaceErrorTitle": "This page could not be loaded",
+    "workspaceErrorDescription": "Try loading the page again. If the problem continues, contact your administrator.",
+    "retryWorkspace": "Reload page",
+    "loadingWorkspace": "Loading your workspace…"
   },
   "auth": {
     "signOutErrorTitle": "Couldn't sign out",
@@ -87,15 +108,17 @@
     "signIn": {
       "eyebrow": "Reven",
       "title": "Sign in",
-      "description": "Welcome back — sign in to continue.",
+      "description": "Continue to your partnership workspace.",
       "emailLabel": "Email",
       "passwordLabel": "Password",
       "submit": "Sign in",
       "submitting": "Signing in…",
       "forgotPassword": "Forgot password?",
       "noAccount": "Don't have an account?",
-      "signUpLink": "Create one",
-      "genericError": "Invalid email or password."
+      "signUpLink": "Create an account",
+      "genericError": "Invalid email or password.",
+      "emailError": "Enter a valid email address.",
+      "passwordError": "Enter your password."
     },
     "signUp": {
       "eyebrow": "Reven",
@@ -152,6 +175,17 @@
       "invalidDescription": "It may have expired, already been used, or been revoked. Ask whoever invited you to send a new one.",
       "goToSignIn": "Go to sign in",
       "genericError": "This invitation is invalid or has expired."
+    },
+    "layout": {
+      "category": "Partnership management",
+      "title": "Give every partnership a clear next step.",
+      "description": "Manage partner relationships, track commitments, and review the evidence behind each outcome.",
+      "partners": "Build your portfolio",
+      "actions": "Assign the next action",
+      "reviews": "Record each decision",
+      "outcomes": "Verify the result",
+      "footer": "Your team’s private partnership workspace.",
+      "skipToContent": "Skip to sign in"
     }
   },
   "onboarding": {
@@ -756,7 +790,10 @@
     "forbidden": {
       "title": "Access required",
       "description": "Ask an owner, admin, executive, manager or reviewer of this organization if you need access to evidence and outcomes."
-    }
+    },
+    "downloadFileButton": "Download file",
+    "openSourceButton": "Open source",
+    "downloadError": "Could not download this file. Try again."
   },
   "audit": {
     "eyebrow": "Reven — Audit",

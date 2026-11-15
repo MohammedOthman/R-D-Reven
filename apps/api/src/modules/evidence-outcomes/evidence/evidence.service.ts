@@ -69,6 +69,22 @@ export class EvidenceService {
     return evidence;
   }
 
+  async getFile(tenantId: string, evidenceId: string, actingUserId: string) {
+    const evidence = await this.get(tenantId, evidenceId);
+    if (!evidence.storageKey) throw new NotFoundException('No file is attached to this evidence.');
+    const file = await prisma.evidenceFile.findFirst({
+      where: { storageKey: evidence.storageKey, tenantId },
+    });
+    if (!file) throw new NotFoundException('Evidence file not found.');
+    await recordAuditEvent(tenantId, {
+      actorId: actingUserId,
+      action: 'evidence_file_downloaded',
+      objectType: 'Evidence',
+      objectId: evidence.id,
+    });
+    return { content: Buffer.from(file.content), fileName: evidence.fileName ?? 'evidence' };
+  }
+
   async create(
     tenantId: string,
     input: CreateEvidenceInput,

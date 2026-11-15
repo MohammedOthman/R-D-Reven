@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { apiFetch } from '@/src/lib/api/client';
+import { apiFetch, apiDownload } from '@/src/lib/api/client';
 import { ApiError } from '@/src/lib/api/error';
 
 function jsonResponse(status: number, body?: unknown) {
@@ -95,5 +95,27 @@ describe('apiFetch', () => {
       apiFetch('/auth/sign-in', { method: 'POST', body: { email: 'a@b.com', password: 'wrong' } }),
     ).rejects.toBeInstanceOf(ApiError);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('apiDownload', () => {
+  beforeEach(() => vi.restoreAllMocks());
+  it('renews an expired session before returning the original file', async () => {
+    const file = new Blob(['evidence bytes']);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(200, {}))
+      .mockResolvedValueOnce({ ok: true, status: 200, blob: async () => file });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiDownload('/tenants/t1/evidence/e1/file')).resolves.toBe(file);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+  it('surfaces a forbidden download rather than saving an error as a file', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse(403, { code: 'FORBIDDEN', message: 'Denied' })),
+    );
+    await expect(apiDownload('/tenants/t1/evidence/e1/file')).rejects.toBeInstanceOf(ApiError);
   });
 });

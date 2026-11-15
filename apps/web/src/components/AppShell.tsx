@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
@@ -10,33 +9,33 @@ import {
   Rocket,
   FileText,
   ShieldCheck,
-  PieChart,
   CalendarClock,
-  BarChart3,
-  Plug,
   Settings,
-  Palette,
   LogOut,
   Building2,
   ScrollText,
+  X,
 } from 'lucide-react';
 import {
   Sidebar,
   TopNav,
   Avatar,
   useToast,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
   type SidebarNavItem,
   type SidebarNavSection,
 } from '@revn/ui';
-import { Link, useRouter, usePathname as useLocalizedPathname } from '@/src/i18n/navigation';
+import { Link, useRouter, usePathname } from '@/src/i18n/navigation';
 import { activeNavIdFromPathname } from '@/src/lib/activeNavId';
 import { signOut } from '@/src/lib/auth/client';
 import { LocaleSwitcherLink } from '@/src/components/LocaleSwitcherLink';
+import { WorkspaceFormatProvider } from './WorkspaceFormat';
 import type { AuthUser } from '@/src/lib/auth/types';
 import type { Tenant, MembershipRole } from '@/src/lib/tenant/types';
 import { roleLabelKey } from '@/src/lib/tenant/roleLabels';
-
-const ADMIN_ROLES: MembershipRole[] = ['OWNER', 'ADMIN'];
 
 export function AppShell({
   children,
@@ -51,30 +50,16 @@ export function AppShell({
 }) {
   const t = useTranslations();
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
-  const localizedPathname = useLocalizedPathname();
-  // Mobile: the sidebar is an off-canvas drawer, mounted only while open.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  // Desktop (lg+): the sidebar is always visible, collapsing to an icon rail.
+  const mobileNavTrigger = useRef<HTMLButtonElement>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-
-  const activeId = activeNavIdFromPathname(localizedPathname);
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    try {
-      await signOut();
-      router.replace('/sign-in');
-    } catch {
-      setSigningOut(false);
-      toast({
-        title: t('auth.signOutErrorTitle'),
-        description: t('auth.signOutErrorDescription'),
-        variant: 'error',
-      });
-    }
-  };
+  const activeId = activeNavIdFromPathname(pathname);
+  const isAdmin = role === 'OWNER' || role === 'ADMIN';
+  const isInternal = role !== 'GUEST';
+  const canExecute = isInternal && role !== 'REVIEWER';
 
   const coreItems: SidebarNavItem[] = [
     {
@@ -83,11 +68,7 @@ export function AppShell({
       icon: <LayoutGrid className="size-[18px]" />,
       href: '/',
     },
-    // PRD §2.3's "Portfolio read" gives Guest only "shared only" access,
-    // which depends on the Share Grant mechanism (R1.1, not built) — hidden
-    // entirely for Guest rather than showing an item that would always list
-    // empty; the API's own RoleGuard denies Guest server-side regardless.
-    ...(role !== 'GUEST'
+    ...(isInternal
       ? [
           {
             id: 'partnerships',
@@ -97,10 +78,7 @@ export function AppShell({
           },
         ]
       : []),
-    // PRD §2.3's "Initiatives/actions" row denies Reviewer entirely (unlike
-    // "Portfolio read," which gives Reviewer a scoped view) — hidden for
-    // both Guest and Reviewer, not just Guest.
-    ...(role !== 'GUEST' && role !== 'REVIEWER'
+    ...(canExecute
       ? [
           {
             id: 'initiatives',
@@ -110,43 +88,7 @@ export function AppShell({
           },
         ]
       : []),
-    // §2.3's "Agreements/rules" row denies Guest by default (needs Share
-    // Grant, not built — v2 item 16) — same treatment as Partnerships.
-    ...(role !== 'GUEST'
-      ? [
-          {
-            id: 'agreements',
-            label: t('nav.agreements'),
-            icon: <FileText className="size-[18px]" />,
-            href: '/agreements',
-          },
-        ]
-      : []),
-    // PRD §2.3's "Evidence/outcomes" row is real access for every role but
-    // Guest, whose "Contribute if granted" cell needs the Share Grant
-    // mechanism (R1.1, not built) — same treatment as Partnerships above.
-    // Unlike Initiatives/Reviews, Reviewer is NOT excluded here — their cell
-    // is "Verify if assigned," a real (if narrower) capability.
-    ...(role !== 'GUEST'
-      ? [
-          {
-            id: 'evidence-outcomes',
-            label: t('nav.evidenceOutcomes'),
-            icon: <ShieldCheck className="size-[18px]" />,
-            href: '/evidence-outcomes',
-          },
-        ]
-      : []),
-    {
-      id: 'revenue-share',
-      label: t('nav.revenueShare'),
-      icon: <PieChart className="size-[18px]" />,
-      href: '/',
-      comingLater: true,
-    },
-    // Reviews borrows "Initiatives/actions" RBAC (no dedicated matrix row
-    // exists for it) — same Guest/Reviewer exclusion as Initiatives.
-    ...(role !== 'GUEST' && role !== 'REVIEWER'
+    ...(canExecute
       ? [
           {
             id: 'reviews',
@@ -156,32 +98,25 @@ export function AppShell({
           },
         ]
       : []),
-    {
-      id: 'reports',
-      label: t('nav.reports'),
-      icon: <BarChart3 className="size-[18px]" />,
-      href: '/',
-      comingLater: true,
-    },
+    ...(isInternal
+      ? [
+          {
+            id: 'agreements',
+            label: t('nav.agreements'),
+            icon: <FileText className="size-[18px]" />,
+            href: '/agreements',
+          },
+          {
+            id: 'evidence-outcomes',
+            label: t('nav.evidenceOutcomes'),
+            icon: <ShieldCheck className="size-[18px]" />,
+            href: '/evidence-outcomes',
+          },
+        ]
+      : []),
   ];
-
-  const isAdmin = ADMIN_ROLES.includes(role);
-
   const adminItems: SidebarNavItem[] = [
-    {
-      id: 'integrations',
-      label: t('nav.integrations'),
-      icon: <Plug className="size-[18px]" />,
-      href: '/',
-      comingLater: true,
-    },
-    // Table 10 groups Audit under "Administration" as page *content*, but
-    // §2.3's "Audit/export" row gives Executive/Manager/Reviewer real (if
-    // scoped) access too — unlike Administration itself, which really is
-    // owner/admin only. A real top-level item, not folded into the
-    // Administration page the way Partner/Decision were folded into an
-    // existing surface whose RBAC actually matched. See docs/DECISIONS.md.
-    ...(role !== 'GUEST'
+    ...(isInternal
       ? [
           {
             id: 'audit',
@@ -191,10 +126,6 @@ export function AppShell({
           },
         ]
       : []),
-    // Tenant/configuration (PRD §2.3) is owner/admin only — a Manager,
-    // Executive, Reviewer or Guest never sees this item at all, rather than
-    // seeing it and hitting a Forbidden page (the route itself still
-    // enforces this server-side for anyone linking in directly).
     ...(isAdmin
       ? [
           {
@@ -205,31 +136,41 @@ export function AppShell({
           },
         ]
       : []),
-    {
-      id: 'design-system',
-      label: t('nav.designSystem'),
-      icon: <Palette className="size-[18px]" />,
-      href: '/design-system',
-    },
   ];
-
   const sections: SidebarNavSection[] = [
     { id: 'core', label: t('nav.sectionCore'), items: coreItems },
-    { id: 'admin', label: t('nav.sectionAdmin'), items: adminItems },
+    ...(adminItems.length
+      ? [{ id: 'admin', label: t('nav.sectionAdmin'), items: adminItems }]
+      : []),
   ];
+  const currentPage =
+    [...coreItems, ...adminItems].find((item) => item.id === activeId)?.label ??
+    t('nav.sectionCore');
 
-  const roleLabel = t(roleLabelKey(role));
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.replace('/sign-in');
+      router.refresh();
+    } catch {
+      setSigningOut(false);
+      toast({
+        title: t('auth.signOutErrorTitle'),
+        description: t('auth.signOutErrorDescription'),
+        variant: 'error',
+      });
+    }
+  };
 
   const footerSlot = (
-    <div className={collapsed ? 'flex justify-center' : 'flex items-center gap-2.5 px-1'}>
+    <div className={collapsed ? 'flex justify-center' : 'flex items-center gap-2.5'}>
       {!collapsed && (
         <>
           <Avatar name={user.name} size="sm" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-white">{user.name}</p>
-            <p className="truncate text-xs text-white/50">
-              {user.email} · {roleLabel}
-            </p>
+            <p className="truncate text-[13px] text-white/65">{t(roleLabelKey(role))}</p>
           </div>
         </>
       )}
@@ -238,87 +179,113 @@ export function AppShell({
         onClick={handleSignOut}
         disabled={signingOut}
         aria-label={t('common.signOut')}
-        title={collapsed ? t('common.signOut') : undefined}
-        className="flex size-8 shrink-0 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none disabled:opacity-50"
+        title={t('common.signOut')}
+        className="flex size-11 shrink-0 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none disabled:opacity-50"
       >
-        <LogOut className="size-4" aria-hidden="true" />
+        <LogOut className="size-[18px]" aria-hidden="true" />
       </button>
     </div>
   );
-
   const sidebarProps = {
     activeId,
     comingLaterLabel: t('common.comingLater'),
+    navigationLabel: t('common.navigation'),
     linkComponent: Link,
-    logoSlot: <RevenMark />,
+    logoSlot: (
+      <Image
+        src="/brand/reven-mark-white.svg"
+        alt="Reven"
+        width={928}
+        height={239}
+        className="h-7 w-auto"
+        priority
+      />
+    ),
     sections,
     footerSlot,
   };
 
   return (
-    <div className="bg-canvas flex h-dvh w-full overflow-hidden">
-      {/* Desktop — always mounted, collapses to an icon rail in place. */}
-      <div className="hidden lg:block">
-        <Sidebar
-          {...sidebarProps}
-          collapsed={collapsed}
-          onToggleCollapsed={() => setCollapsed((v) => !v)}
-          toggleCollapsedLabel={t('common.toggleNavigation')}
-        />
-      </div>
-
-      {/* Mobile — off-canvas drawer, mounted only while open, always full width. */}
-      {mobileNavOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button
-            type="button"
-            aria-label={t('common.closeNavigation')}
-            className="bg-ink/50 absolute inset-0"
-            onClick={() => setMobileNavOpen(false)}
+    <WorkspaceFormatProvider timezone={tenant.timezone}>
+      <div className="bg-canvas flex h-dvh w-full overflow-hidden">
+        <a href="#main-content" className="skip-link">
+          {t('common.skipToContent')}
+        </a>
+        <div className="hidden lg:block">
+          <Sidebar
+            {...sidebarProps}
+            collapsed={collapsed}
+            onToggleCollapsed={() => setCollapsed((value) => !value)}
+            toggleCollapsedLabel={t('common.toggleNavigation')}
           />
-          <div className="absolute inset-y-0 start-0">
-            <Sidebar {...sidebarProps} />
-          </div>
         </div>
-      )}
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* A user with more than one membership (a tenant switcher) isn't a
-            case this phase's UI handles — see packages/db/prisma/schema.prisma. */}
-        <TopNav
-          onToggleSidebar={() => setMobileNavOpen((v) => !v)}
-          toggleSidebarLabel={t('common.toggleNavigation')}
-          tenantSlot={
-            <span className="font-body text-ink bg-canvas inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium">
-              <Building2 className="text-muted-body size-4" aria-hidden="true" />
-              {tenant.name}
-            </span>
-          }
-          userSlot={
-            <LocaleSwitcherLink className="font-body text-muted-body hover:bg-canvas hover:text-ink rounded-md px-2 py-1.5" />
-          }
-        />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8">{children}</main>
+        <Dialog open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          <DialogContent
+            id="mobile-navigation"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              mobileNavTrigger.current?.focus();
+            }}
+            showClose={false}
+            className="bg-navy inset-y-0 start-0 end-auto top-0 left-0 h-dvh max-h-dvh w-[min(20rem,100vw)] max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0 rtl:left-auto"
+          >
+            <DialogTitle className="sr-only">{t('common.navigation')}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('common.navigationDescription')}
+            </DialogDescription>
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label={t('common.closeNavigation')}
+              className="absolute end-3 top-2.5 z-10 flex size-11 items-center justify-center rounded-md text-white/80 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+            >
+              <X className="size-5" aria-hidden="true" />
+            </button>
+            <div
+              className="h-full"
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest('a')) setMobileNavOpen(false);
+              }}
+            >
+              <Sidebar {...sidebarProps} collapsed={false} className="!w-full" />
+            </div>
+          </DialogContent>
+        </Dialog>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopNav
+            toggleButtonRef={mobileNavTrigger}
+            onToggleSidebar={() => setMobileNavOpen(true)}
+            sidebarOpen={mobileNavOpen}
+            toggleSidebarLabel={t('common.toggleNavigation')}
+            tenantSlot={
+              <div className="flex min-w-0 items-center gap-3">
+                <Building2
+                  className="text-muted-body hidden size-4 shrink-0 sm:block"
+                  aria-hidden="true"
+                />
+                <span className="text-ink max-w-[38vw] truncate text-sm font-semibold sm:max-w-64">
+                  {tenant.name}
+                </span>
+                <span className="text-muted-body hidden border-s border-[var(--border-default)] ps-3 text-sm md:block">
+                  {currentPage}
+                </span>
+              </div>
+            }
+            userSlot={
+              <LocaleSwitcherLink className="text-muted-body hover:bg-canvas hover:text-ink inline-flex min-h-11 items-center rounded-md px-3 text-sm" />
+            }
+          />
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain focus:outline-none"
+          >
+            <div className="mx-auto w-full max-w-[1440px] p-4 pb-12 sm:p-8 sm:pb-12 lg:p-10">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
-  );
-}
-
-/**
- * The brand system defines exactly one wordmark lockup (full "Reven." with
- * its accent chip) and explicitly forbids an icon-only mark (brand doc §03) —
- * so this renders the real wordmark SVG at its native aspect ratio rather
- * than squeezing it into a square icon slot next to a duplicate text label.
- */
-function RevenMark() {
-  return (
-    <Image
-      src="/brand/reven-mark-white.svg"
-      alt="Reven"
-      width={928}
-      height={238.5}
-      className="h-6 w-auto"
-      priority
-    />
+    </WorkspaceFormatProvider>
   );
 }

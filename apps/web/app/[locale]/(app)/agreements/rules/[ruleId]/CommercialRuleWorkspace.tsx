@@ -1,5 +1,7 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -92,6 +94,7 @@ export function CommercialRuleWorkspace({
   initialRule: CommercialRule;
   currentRole: MembershipRole;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('commercialRules');
   const router = useRouter();
   const canWrite = WRITE_ROLES.includes(currentRole);
@@ -128,7 +131,11 @@ export function CommercialRuleWorkspace({
         title={rule.name}
         description={t(`type.${rule.type}`)}
         actions={
-          <Button variant="ghost" onClick={() => router.push('/agreements/rules')} className="gap-1.5">
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/agreements/rules')}
+            className="gap-1.5"
+          >
             <ArrowLeft className="size-4" aria-hidden="true" />
             {t('backButton')}
           </Button>
@@ -144,7 +151,12 @@ export function CommercialRuleWorkspace({
             <CardDescription>{t('versionsDescription')}</CardDescription>
           </div>
           {canWrite && (
-            <Button size="sm" variant="secondary" onClick={() => setVersionOpen(true)} className="gap-1.5">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setVersionOpen(true)}
+              className="gap-1.5"
+            >
               <Plus className="size-4" aria-hidden="true" />
               {t('addVersionButton')}
             </Button>
@@ -165,10 +177,9 @@ export function CommercialRuleWorkspace({
                       {t('versionLabel', { number: v.versionNumber })}
                     </p>
                     <p className="text-muted-body truncate text-xs">
-                      {t('precedenceLabel')}: {v.precedence} ·{' '}
-                      {new Date(v.effectiveFrom).toLocaleDateString()}
+                      {t('precedenceLabel')}: {v.precedence} · {formatDate(v.effectiveFrom)}
                       {' – '}
-                      {v.effectiveTo ? new Date(v.effectiveTo).toLocaleDateString() : t('openEnded')}
+                      {v.effectiveTo ? formatDate(v.effectiveTo) : t('openEnded')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -187,7 +198,12 @@ export function CommercialRuleWorkspace({
                       </Button>
                     )}
                     {canApprove && v.approvalStatus === 'DRAFT' && (
-                      <Button variant="ghost" size="sm" loading={busy} onClick={() => handleApprove(v)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        loading={busy}
+                        onClick={() => handleApprove(v)}
+                      >
                         {t('approveButton')}
                       </Button>
                     )}
@@ -199,7 +215,7 @@ export function CommercialRuleWorkspace({
                 {v.testResults && (
                   <div className="border-t border-[var(--border-default)] pt-2">
                     <p className="text-muted-body text-xs tracking-[var(--tracking-label)] uppercase">
-                      {t('lastTestLabel', { date: new Date(v.testResults.ranAt).toLocaleString() })}
+                      {t('lastTestLabel', { date: formatDate(v.testResults.ranAt, true) })}
                     </p>
                     <ul className="mt-1 flex flex-col gap-1">
                       {v.testResults.cases.map((c, i) => (
@@ -211,7 +227,11 @@ export function CommercialRuleWorkspace({
                           <span className="text-ink">{c.label || t('unlabeledCase')}</span>
                           <span className="text-muted-body">
                             {' '}
-                            — {t('expectedActual', { expected: String(c.expectedResult), actual: String(c.actualResult) })}
+                            —{' '}
+                            {t('expectedActual', {
+                              expected: String(c.expectedResult),
+                              actual: String(c.actualResult),
+                            })}
                           </span>
                         </li>
                       ))}
@@ -234,13 +254,18 @@ export function CommercialRuleWorkspace({
           initialPrecedence={0}
           initialEffectiveFrom=""
           initialEffectiveTo=""
-          initialDefinition={{ combinator: 'AND', conditions: [{ field: '', operator: 'eq', value: '' }] }}
+          initialDefinition={{
+            combinator: 'AND',
+            conditions: [{ field: '', operator: 'eq', value: '' }],
+          }}
           onSubmit={(values) =>
             createCommercialRuleVersion(tenantId, rule.id, {
               definition: values.definition,
               precedence: values.precedence,
               effectiveFrom: new Date(values.effectiveFrom).toISOString(),
-              effectiveTo: values.effectiveTo ? new Date(values.effectiveTo).toISOString() : undefined,
+              effectiveTo: values.effectiveTo
+                ? new Date(values.effectiveTo).toISOString()
+                : undefined,
             })
           }
           onSaved={() => {
@@ -269,7 +294,9 @@ export function CommercialRuleWorkspace({
               definition: values.definition,
               precedence: values.precedence,
               effectiveFrom: new Date(values.effectiveFrom).toISOString(),
-              effectiveTo: values.effectiveTo ? new Date(values.effectiveTo).toISOString() : undefined,
+              effectiveTo: values.effectiveTo
+                ? new Date(values.effectiveTo).toISOString()
+                : undefined,
             })
           }
           onSaved={() => {
@@ -397,7 +424,7 @@ function VersionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent closeLabel={t('cancel')} className="max-w-xl">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
@@ -428,7 +455,11 @@ function VersionDialog({
             </FormField>
           </div>
 
-          <FormField id="rule-version-precedence" label={t('precedenceLabel')} hint={t('precedenceHint')}>
+          <FormField
+            id="rule-version-precedence"
+            label={t('precedenceLabel')}
+            hint={t('precedenceHint')}
+          >
             <Input
               id="rule-version-precedence"
               type="number"
@@ -581,7 +612,7 @@ function TestVersionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent closeLabel={t('cancel')} className="max-w-xl">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('testButton')}</DialogTitle>

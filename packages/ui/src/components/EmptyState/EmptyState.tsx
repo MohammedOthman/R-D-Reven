@@ -26,9 +26,9 @@ export function EmptyState({ icon, title, description, action, className }: Empt
       <div className="bg-canvas text-muted-tertiary flex size-12 items-center justify-center rounded-full">
         {icon ?? <Inbox className="size-6" aria-hidden="true" />}
       </div>
-      <h3 className="font-display text-ink text-base font-bold tracking-[var(--tracking-display)]">
+      <p className="font-display text-ink text-base font-bold tracking-[var(--tracking-display)]">
         {title}
-      </h3>
+      </p>
       {description && <p className="font-body text-muted-body max-w-sm text-sm">{description}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>

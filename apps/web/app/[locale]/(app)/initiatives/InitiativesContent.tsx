@@ -1,5 +1,7 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -75,6 +77,7 @@ export function InitiativesContent({
   members: MemberSummary[];
   currentRole: MembershipRole;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('initiatives');
   const router = useRouter();
   const canWrite = WRITE_ROLES.includes(currentRole);
@@ -125,7 +128,7 @@ export function InitiativesContent({
     {
       key: 'targetDate',
       header: t('targetDateHeader'),
-      render: (i) => (i.targetDate ? new Date(i.targetDate).toLocaleDateString() : '—'),
+      render: (i) => (i.targetDate ? formatDate(i.targetDate) : '—'),
     },
   ];
 
@@ -260,7 +263,7 @@ function CreateInitiativeDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('createDialogTitle')}</DialogTitle>

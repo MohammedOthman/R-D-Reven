@@ -20,11 +20,11 @@
     "audit": "التدقيق"
   },
   "commandCenter": {
-    "eyebrow": "Reven — مركز التحكم",
-    "title": "مركز التحكم",
+    "eyebrow": "مساحة العمل",
+    "title": "نظرة عامة على شراكاتك",
     "description": "ما يحتاج إلى اهتمام عبر محفظتك الآن.",
     "guestTitle": "لا شيء تمت مشاركته معك بعد",
-    "guestDescription": "يمكن لمالك أو مسؤول مشاركة عناصر شراكة محددة معك — اسأله إذا كنت تتوقع الوصول.",
+    "guestDescription": "وصول الشركاء الخارجيين غير متاح حاليًا. تواصل مع مسؤول مؤسستك بشأن صلاحيات الوصول.",
     "errorTitle": "تعذّر تحميل لوحة التحكم",
     "errorDescription": "حدث خطأ ما أثناء جلب بيانات محفظتك. جرِّب تحديث الصفحة.",
     "kpi": {
@@ -35,8 +35,8 @@
       "reviewsDue": "المراجعات المستحقة",
       "outcomesAwaitingVerification": "النتائج بانتظار التحقق"
     },
-    "exceptionsTitle": "الاستثناءات",
-    "exceptionsDescription": "كل ما هو حاليًا في حالة استثناء عبر المحفظة.",
+    "exceptionsTitle": "بحاجة إلى متابعة",
+    "exceptionsDescription": "راجع الشراكات والإجراءات والنتائج التي تحتاج إلى قرار.",
     "noExceptionsTitle": "لا استثناءات الآن",
     "noExceptionsDescription": "لا شيء في خطر أو معطَّل أو مرفوض عبر محفظتك.",
     "exceptionType": {
@@ -66,7 +66,18 @@
     "integrationsTitle": "سلامة التكاملات",
     "integrationsDescription": "الاتصالات ومهام المزامنة والأخطاء عبر الأنظمة الخارجية.",
     "noIntegrationsTitle": "لا توجد تكاملات متصلة بعد",
-    "noIntegrationsDescription": "اربط نظام CRM أو مصدر بيانات آخر لرؤية سلامة المزامنة هنا."
+    "noIntegrationsDescription": "اربط نظام CRM أو مصدر بيانات آخر لرؤية سلامة المزامنة هنا.",
+    "gettingStarted": {
+      "title": "ابدأ بشراكتك الأولى",
+      "description": "أضف شركة شريكة وحدّد العلاقة ثم ضع هدفًا مشتركًا للفريق.",
+      "action": "أضف شريكك الأول",
+      "partner": "أضف شريكًا",
+      "partnerDescription": "اجمع بيانات الشركة ووسائل التواصل معها.",
+      "relationship": "حدّد العلاقة",
+      "relationshipDescription": "عيّن المسؤول والهدف وموعد المراجعة التالية.",
+      "initiative": "خطّط للعمل",
+      "initiativeDescription": "أنشئ مبادرة وأسند الإجراء التالي."
+    }
   },
   "common": {
     "comingLater": "قريبًا",
@@ -79,7 +90,17 @@
     "roleExecutive": "تنفيذي",
     "roleManager": "مدير",
     "roleReviewer": "مراجع",
-    "roleGuest": "ضيف"
+    "roleGuest": "ضيف",
+    "navigation": "التنقل",
+    "navigationDescription": "افتح صفحة في مساحة العمل أو أدر حسابك.",
+    "skipToContent": "انتقل إلى المحتوى",
+    "close": "إغلاق",
+    "showPassword": "إظهار كلمة المرور",
+    "hidePassword": "إخفاء كلمة المرور",
+    "workspaceErrorTitle": "تعذّر تحميل هذه الصفحة",
+    "workspaceErrorDescription": "حاول تحميل الصفحة مرة أخرى.",
+    "retryWorkspace": "إعادة تحميل الصفحة",
+    "loadingWorkspace": "جارٍ تحميل مساحة العمل…"
   },
   "auth": {
     "signOutErrorTitle": "تعذّر تسجيل الخروج",
@@ -87,7 +108,7 @@
     "signIn": {
       "eyebrow": "Reven",
       "title": "تسجيل الدخول",
-      "description": "مرحبًا بعودتك — سجّل الدخول للمتابعة.",
+      "description": "تابع العمل في مساحة شراكاتك.",
       "emailLabel": "البريد الإلكتروني",
       "passwordLabel": "كلمة المرور",
       "submit": "تسجيل الدخول",
@@ -95,7 +116,9 @@
       "forgotPassword": "نسيت كلمة المرور؟",
       "noAccount": "ليس لديك حساب؟",
       "signUpLink": "أنشئ حسابًا",
-      "genericError": "البريد الإلكتروني أو كلمة المرور غير صحيحة."
+      "genericError": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+      "emailError": "أدخل عنوان بريد إلكتروني صالحًا.",
+      "passwordError": "أدخل كلمة المرور."
     },
     "signUp": {
       "eyebrow": "Reven",
@@ -152,6 +175,17 @@
       "invalidDescription": "ربما انتهت صلاحيتها أو تم استخدامها بالفعل أو تم إلغاؤها. اطلب من الشخص الذي دعاك إرسال دعوة جديدة.",
       "goToSignIn": "الذهاب لتسجيل الدخول",
       "genericError": "هذه الدعوة غير صالحة أو منتهية الصلاحية."
+    },
+    "layout": {
+      "category": "إدارة الشراكات",
+      "title": "خطوة تالية واضحة لكل شراكة.",
+      "description": "أدر علاقات الشركاء وتابع الالتزامات وراجع الأدلة التي تدعم كل نتيجة.",
+      "partners": "نظّم محفظة الشراكات",
+      "actions": "أسند الإجراء التالي",
+      "reviews": "وثّق كل قرار",
+      "outcomes": "تحقّق من النتيجة",
+      "footer": "مساحة عمل خاصة بشراكات فريقك.",
+      "skipToContent": "انتقل إلى النموذج"
     }
   },
   "onboarding": {
@@ -756,7 +790,10 @@
     "forbidden": {
       "title": "الوصول مطلوب",
       "description": "اسأل مالكًا أو مسؤولًا أو تنفيذيًا أو مديرًا أو مراجعًا في هذه المؤسسة إذا كنت بحاجة إلى الوصول إلى الأدلة والنتائج."
-    }
+    },
+    "downloadFileButton": "تنزيل الملف",
+    "openSourceButton": "فتح المصدر",
+    "downloadError": "تعذّر تنزيل الملف. حاول مرة أخرى."
   },
   "audit": {
     "eyebrow": "Reven — التدقيق",

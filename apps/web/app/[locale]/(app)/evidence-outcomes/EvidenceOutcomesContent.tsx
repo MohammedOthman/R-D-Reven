@@ -229,7 +229,7 @@ function CreateOutcomeDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('createDialogTitle')}</DialogTitle>

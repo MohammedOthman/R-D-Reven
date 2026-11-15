@@ -1,5 +1,7 @@
 'use client';
 
+import { useWorkspaceDate } from '@/src/components/WorkspaceFormat';
+
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -31,7 +33,11 @@ import {
   EmptyState,
 } from '@revn/ui';
 import { useRouter } from '@/src/i18n/navigation';
-import { createAgreementVersion, updateAgreement, updateAgreementVersion } from '@/src/lib/agreements/client';
+import {
+  createAgreementVersion,
+  updateAgreement,
+  updateAgreementVersion,
+} from '@/src/lib/agreements/client';
 import { ApiError } from '@/src/lib/api/error';
 import type { MembershipRole } from '@/src/lib/tenant/types';
 import type { Initiative } from '@/src/lib/initiatives/types';
@@ -46,7 +52,10 @@ const WRITE_ROLES: MembershipRole[] = ['OWNER', 'ADMIN', 'MANAGER'];
 const APPROVE_ROLES: MembershipRole[] = ['OWNER', 'ADMIN', 'REVIEWER'];
 const NONE = '__none__';
 
-const STATUS_TONE: Record<AgreementStatus, 'neutral' | 'accent' | 'positive' | 'caution' | 'alert'> = {
+const STATUS_TONE: Record<
+  AgreementStatus,
+  'neutral' | 'accent' | 'positive' | 'caution' | 'alert'
+> = {
   CAPTURED: 'neutral',
   IN_REVIEW: 'accent',
   EFFECTIVE: 'positive',
@@ -81,13 +90,16 @@ export function AgreementWorkspace({
   initiatives: Initiative[];
   currentRole: MembershipRole;
 }) {
+  const formatDate = useWorkspaceDate();
   const t = useTranslations('agreements');
   const router = useRouter();
   const canWrite = WRITE_ROLES.includes(currentRole);
   const canApprove = APPROVE_ROLES.includes(currentRole);
 
   const agreement = initialAgreement;
-  const versions = [...(agreement.versions ?? [])].sort((a, b) => b.versionNumber - a.versionNumber);
+  const versions = [...(agreement.versions ?? [])].sort(
+    (a, b) => b.versionNumber - a.versionNumber,
+  );
   const [versionOpen, setVersionOpen] = useState(false);
   const [editingVersion, setEditingVersion] = useState<AgreementVersion | null>(null);
   const [busy, setBusy] = useState(false);
@@ -146,7 +158,10 @@ export function AgreementWorkspace({
       <Card>
         <CardContent className="flex flex-col gap-4 pt-5">
           <div className="flex flex-wrap items-center gap-3">
-            <StatusBadge label={t(`status.${agreement.status}`)} tone={STATUS_TONE[agreement.status]} />
+            <StatusBadge
+              label={t(`status.${agreement.status}`)}
+              tone={STATUS_TONE[agreement.status]}
+            />
           </div>
 
           {canWrite && nextStatuses.length > 0 && (
@@ -180,7 +195,12 @@ export function AgreementWorkspace({
             <CardDescription>{t('versionsDescription')}</CardDescription>
           </div>
           {canWrite && agreement.status !== 'EXPIRED' && agreement.status !== 'TERMINATED' && (
-            <Button size="sm" variant="secondary" onClick={() => setVersionOpen(true)} className="gap-1.5">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setVersionOpen(true)}
+              className="gap-1.5"
+            >
               <Plus className="size-4" aria-hidden="true" />
               {t('addVersionButton')}
             </Button>
@@ -201,9 +221,9 @@ export function AgreementWorkspace({
                       {t('versionLabel', { number: v.versionNumber })}
                     </p>
                     <p className="text-muted-body truncate text-xs">
-                      {new Date(v.effectiveFrom).toLocaleDateString()}
+                      {formatDate(v.effectiveFrom)}
                       {' – '}
-                      {v.effectiveTo ? new Date(v.effectiveTo).toLocaleDateString() : t('openEnded')}
+                      {v.effectiveTo ? formatDate(v.effectiveTo) : t('openEnded')}
                       {v.initiativeId ? ` · ${initiativeName(v.initiativeId)}` : ''}
                     </p>
                   </div>
@@ -218,7 +238,12 @@ export function AgreementWorkspace({
                       </Button>
                     )}
                     {canApprove && v.approvalStatus === 'DRAFT' && (
-                      <Button variant="ghost" size="sm" loading={busy} onClick={() => handleApprove(v)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        loading={busy}
+                        onClick={() => handleApprove(v)}
+                      >
                         {t('approveButton')}
                       </Button>
                     )}
@@ -322,7 +347,7 @@ function AddVersionDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('addVersionButton')}</DialogTitle>
@@ -344,7 +369,11 @@ function AddVersionDialog({
                 onChange={(e) => setEffectiveFrom(e.target.value)}
               />
             </FormField>
-            <FormField id="version-effective-to" label={t('effectiveToLabel')} hint={t('effectiveToHint')}>
+            <FormField
+              id="version-effective-to"
+              label={t('effectiveToLabel')}
+              hint={t('effectiveToHint')}
+            >
               <DateInput
                 id="version-effective-to"
                 value={effectiveTo}
@@ -353,7 +382,11 @@ function AddVersionDialog({
             </FormField>
           </div>
 
-          <FormField id="version-initiative" label={t('initiativeLabel')} hint={t('initiativeHint')}>
+          <FormField
+            id="version-initiative"
+            label={t('initiativeLabel')}
+            hint={t('initiativeHint')}
+          >
             <Select value={initiativeId} onValueChange={setInitiativeId}>
               <SelectTrigger id="version-initiative">
                 <SelectValue />
@@ -429,7 +462,7 @@ function EditVersionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
             <DialogTitle>{t('editVersionTitle', { number: version.versionNumber })}</DialogTitle>
@@ -439,7 +472,11 @@ function EditVersionDialog({
           {error && <p className="text-status-alert text-sm">{error}</p>}
 
           <FormField id="edit-version-terms" label={t('termsLabel')}>
-            <Textarea id="edit-version-terms" value={terms} onChange={(e) => setTerms(e.target.value)} />
+            <Textarea
+              id="edit-version-terms"
+              value={terms}
+              onChange={(e) => setTerms(e.target.value)}
+            />
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">

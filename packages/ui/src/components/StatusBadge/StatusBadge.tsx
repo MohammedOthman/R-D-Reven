@@ -2,7 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/cn';
 
 export const statusBadgeVariants = cva(
-  'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-label text-xs font-medium uppercase tracking-[var(--tracking-label)]',
+  'inline-flex max-w-full items-center gap-1.5 rounded-pill px-2.5 py-1 text-[13px] font-medium',
   {
     variants: {
       tone: {
