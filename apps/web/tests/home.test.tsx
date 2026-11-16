@@ -90,6 +90,17 @@ describe('public home handoffs and controls', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Resume motion' })[0]!);
     expect(container.firstChild).toHaveAttribute('data-motion', 'on');
   });
+  it('adds a decorative ambient layer to each section without a 3D scene', () => {
+    const { container } = mount();
+    const layers = [...container.querySelectorAll('.hm-ambient')];
+    expect(layers.map((layer) => layer.className.split('--')[1])).toEqual([
+      'network',
+      'flow',
+      'grid',
+      'rings',
+    ]);
+    expect(layers.every((layer) => layer.getAttribute('aria-hidden') === 'true')).toBe(true);
+  });
   it('closes mobile navigation after selecting a section and on Escape', () => {
     mount();
     const trigger = screen.getByRole('button', { name: 'Open navigation' });

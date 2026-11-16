@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import {
@@ -18,6 +18,7 @@ import {
   X,
 } from './HomeIcon';
 import { Link } from '@/src/i18n/navigation';
+import { AmbientMotion } from './AmbientMotion';
 import { MotionWorld } from './MotionWorld';
 import { useHomeChoreography } from './useHomeChoreography';
 
@@ -249,6 +250,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           </div>
         </section>
         <section id="why-reven" className="hm-dark hm-why" aria-labelledby="why-heading">
+          <AmbientMotion variant="network" paused={!motion} />
           <div className="hm-container">
             <div className="hm-section-heading">
               <div>
@@ -351,6 +353,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           </div>
         </section>
         <section className="hm-dark hm-system" aria-labelledby="system-heading">
+          <AmbientMotion variant="flow" paused={!motion} />
           <div className="hm-container">
             <div className="hm-section-heading">
               <div>
@@ -361,7 +364,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             </div>
             <ol className="hm-workflow">
               {['align', 'execute', 'review', 'verify'].map((key, i) => (
-                <li key={key}>
+                <li key={key} style={{ '--hm-step': i } as CSSProperties}>
                   <span className="hm-workflow-number">0{i + 1}</span>
                   <h3>{t(`system.${key}.title`)}</h3>
                   <p>{t(`system.${key}.description`)}</p>
@@ -380,6 +383,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           </div>
         </section>
         <section id="teams" className="hm-container hm-teams" aria-labelledby="teams-heading">
+          <AmbientMotion variant="grid" paused={!motion} />
           <div className="hm-section-heading">
             <div>
               <Index number="05">{t('teams.eyebrow')}</Index>
@@ -421,6 +425,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           </div>
         </section>
         <section className="hm-cta" aria-labelledby="cta-heading">
+          <AmbientMotion variant="rings" paused={!motion} />
           <div className="hm-container">
             <Index number="06">{t('cta.eyebrow')}</Index>
             <h2 id="cta-heading">
