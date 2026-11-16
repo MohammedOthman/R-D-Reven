@@ -20,11 +20,19 @@ not identify individual people or establish real independent approvals.
 4. Select **Reviewer**, open **Evidence & Outcomes**, and verify the assigned
    outcome. The product still rejects self-approval and self-verification.
 
-The role selector returns to the overview. Roles control the available
+Switching roles keeps the current record open when the new role can view it;
+otherwise it returns to the overview. Roles control the available
 navigation and actions. Account administration and sign-out controls are
 hidden in the pilot. Returning to an account-management URL opens the pilot
 instead. A lost or expired session reopens the last selected persona; an API
 outage offers a retry page instead of asking for a password.
+
+An outcome's verifier must be another active Owner, Admin, or Reviewer.
+The picker shows eligible people and their roles. An Owner, Admin, or
+Manager can use **Change verifier** on a submitted outcome to correct the
+assignment. This preserves the submitted result and evidence and records
+the change in the audit history. Completed verification decisions are not
+reopened by this action.
 
 ## Deployment
 
@@ -56,12 +64,17 @@ authorization, evidence, version, or separation-of-duties checks.
 
 ## Validation
 
-All 286 automated tests, lint, type checks, and production API/web builds
+All 307 automated tests, lint, type checks, and production API/web builds
 pass. A real local PostgreSQL/API smoke covers password-free entry into
 three distinct identities in one workspace; partner → partnership →
 initiative → review → Executive decision approval; outcome → evidence →
 submission → Reviewer verification; self-approval/self-verification denial;
 invalid-role rejection; and recovery of the saved Reviewer persona.
+
+A follow-up database smoke covers creator/disabled/foreign verifier
+rejection, repair of a legacy assignment, role-based reassignment denial,
+stale-version conflict, independent verification, terminal-state rejection,
+and the audit event's before/after assignment.
 
 Proxy and client tests cover first-render cookies, account-route redirects,
 expired sessions, retry-page loop prevention, role preservation, invalid

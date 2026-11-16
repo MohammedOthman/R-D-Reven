@@ -776,7 +776,7 @@
     "uploadFileButton": "Upload file",
     "uploading": "Uploading…",
     "submitDialogTitle": "Submit for verification",
-    "submitDialogDescription": "OUT-02: assign an authorized verifier — an owner, admin or reviewer.",
+    "submitDialogDescription": "Choose another active owner, admin or reviewer to verify this outcome independently.",
     "selectVerifierPlaceholder": "Select a verifier",
     "verifyDialogTitle": "Verify this outcome",
     "verifyDialogDescription": "Verifying preserves the linked evidence as immutable — it cannot be altered afterward.",
@@ -793,7 +793,10 @@
     },
     "downloadFileButton": "Download file",
     "openSourceButton": "Open source",
-    "downloadError": "Could not download this file. Try again."
+    "downloadError": "Could not download this file. Try again.",
+    "changeVerifierButton": "Change verifier",
+    "changeVerifierDescription": "Choose another authorized person to review this submitted outcome.",
+    "noEligibleVerifier": "No independent verifier is available. Ask a workspace administrator to add or reactivate an owner, admin or reviewer."
   },
   "audit": {
     "eyebrow": "Reven — Audit",

@@ -26,7 +26,7 @@ export class UpdateOutcomeDto {
   @IsIn(SETTABLE_STATUSES)
   status?: SettableStatus;
 
-  /** Required when moving to SUBMITTED — the authorized verifier this outcome is assigned to (OUT-02). */
+  /** Required on submission; may also reassign a submitted outcome. The creator cannot be its verifier. */
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

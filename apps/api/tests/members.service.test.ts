@@ -4,10 +4,12 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 const membershipFindFirst = vi.fn();
 const membershipCount = vi.fn();
 const membershipUpdate = vi.fn();
+const membershipFindMany = vi.fn();
 
 vi.mock('@revn/db', () => ({
   prisma: {
     membership: {
+      findMany: (...args: unknown[]) => membershipFindMany(...args),
       findFirst: (...args: unknown[]) => membershipFindFirst(...args),
       count: (...args: unknown[]) => membershipCount(...args),
       update: (...args: unknown[]) => membershipUpdate(...args),
@@ -16,6 +18,23 @@ vi.mock('@revn/db', () => ({
 }));
 
 const { MembersService } = await import('../src/modules/identity-tenant/members/members.service');
+
+describe('MembersService.directory', () => {
+  it('returns roles for eligible assignment while excluding disabled accounts and inactive memberships', async () => {
+    membershipFindMany.mockResolvedValue([
+      { role: 'REVIEWER', user: { id: 'r1', name: 'Reviewer', email: 'reviewer@test.example' } },
+    ]);
+    const result = await new MembersService().directory('tenant-1');
+    expect(membershipFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tenantId: 'tenant-1', status: 'ACTIVE', user: { status: 'ACTIVE' } },
+      }),
+    );
+    expect(result).toEqual([
+      { id: 'r1', name: 'Reviewer', email: 'reviewer@test.example', role: 'REVIEWER' },
+    ]);
+  });
+});
 
 describe('MembersService.update — last-active-owner invariant (ADM-03)', () => {
   beforeEach(() => {

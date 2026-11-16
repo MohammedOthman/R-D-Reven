@@ -175,6 +175,21 @@ export class OutcomesService {
       version: { increment: 1 },
     };
 
+    const reassigningVerifier = verifierId !== undefined && !status;
+    if (reassigningVerifier) {
+      if (!membership || !SUBMIT_ROLES.includes(membership.role)) {
+        throw new ForbiddenException('Only an owner, admin or manager can change the verifier.');
+      }
+      if (current.status !== 'SUBMITTED') {
+        throw new UnprocessableEntityException('Only a submitted outcome can be reassigned.');
+      }
+      await this.validateVerifier(tenantId, verifierId, current.createdById);
+      data.verifierId = verifierId;
+    }
+    if (verifierId !== undefined && status && status !== 'SUBMITTED') {
+      throw new UnprocessableEntityException('Change the verifier separately before verification.');
+    }
+
     if (status) {
       if (!VALID_TRANSITIONS[current.status].includes(status)) {
         throw new UnprocessableEntityException(
@@ -188,19 +203,7 @@ export class OutcomesService {
           throw new ForbiddenException('Only an owner, admin or manager can submit an outcome.');
         }
         const effectiveVerifierId = verifierId ?? current.verifierId;
-        if (!effectiveVerifierId) {
-          throw new UnprocessableEntityException(
-            'Submitting an outcome requires an assigned verifier.',
-          );
-        }
-        const verifierMembership = await prisma.membership.findFirst({
-          where: { tenantId, userId: effectiveVerifierId, status: 'ACTIVE' },
-        });
-        if (!verifierMembership || !VERIFY_ROLES.includes(verifierMembership.role)) {
-          throw new UnprocessableEntityException(
-            'The assigned verifier must be an owner, admin or reviewer.',
-          );
-        }
+        await this.validateVerifier(tenantId, effectiveVerifierId, current.createdById);
         data = {
           ...data,
           verifierId: effectiveVerifierId,
@@ -267,10 +270,10 @@ export class OutcomesService {
           before: current,
           after: updated,
         });
-      } else if (editingFields) {
+      } else if (editingFields || reassigningVerifier) {
         await recordAuditEvent(tenantId, {
           actorId: actingUserId,
-          action: 'outcome_updated',
+          action: reassigningVerifier ? 'outcome_verifier_changed' : 'outcome_updated',
           objectType: 'Outcome',
           objectId: updated.id,
           before: current,
@@ -285,6 +288,27 @@ export class OutcomesService {
         );
       }
       throw error;
+    }
+  }
+
+  private async validateVerifier(
+    tenantId: string,
+    verifierId: string | null | undefined,
+    creatorId: string,
+  ): Promise<void> {
+    if (!verifierId) throw new UnprocessableEntityException('An assigned verifier is required.');
+    if (verifierId === creatorId) {
+      throw new UnprocessableEntityException(
+        'The outcome creator cannot be its verifier. Choose another person.',
+      );
+    }
+    const verifier = await prisma.membership.findFirst({
+      where: { tenantId, userId: verifierId, status: 'ACTIVE', user: { status: 'ACTIVE' } },
+    });
+    if (!verifier || !VERIFY_ROLES.includes(verifier.role)) {
+      throw new UnprocessableEntityException(
+        'The verifier must be an active owner, admin or reviewer in this organization.',
+      );
     }
   }
 }

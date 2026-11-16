@@ -13,6 +13,11 @@ const outcomeCreate = vi.fn();
 const outcomeUpdate = vi.fn();
 const membershipFindFirst = vi.fn();
 const evidenceCount = vi.fn();
+const recordAuditEvent = vi.fn();
+
+vi.mock('../src/modules/audit-operations/audit.service', () => ({
+  recordAuditEvent: (...args: unknown[]) => recordAuditEvent(...args),
+}));
 
 class FakePrismaClientKnownRequestError extends Error {
   code: string;
@@ -140,6 +145,23 @@ describe('OutcomesService.update — submission (OUT-02)', () => {
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
 
+  it.each([true, false])(
+    'rejects assigning the creator, whether explicit or saved (explicit=%s)',
+    async (explicit) => {
+      outcomeFindFirst.mockResolvedValue(outcome({ verifierId: explicit ? null : 'user-1' }));
+      membershipFindFirst.mockResolvedValue({ role: 'OWNER' });
+      await expect(
+        new OutcomesService().update(
+          'tenant-1',
+          'outcome-1',
+          { version: 1, status: 'SUBMITTED', ...(explicit ? { verifierId: 'user-1' } : {}) },
+          'user-1',
+        ),
+      ).rejects.toBeInstanceOf(UnprocessableEntityException);
+      expect(outcomeUpdate).not.toHaveBeenCalled();
+    },
+  );
+
   it('submits to an authorized verifier', async () => {
     outcomeFindFirst.mockResolvedValue(outcome());
     membershipFindFirst
@@ -175,6 +197,128 @@ describe('OutcomesService.update — submission (OUT-02)', () => {
         'user-1',
       ),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
+  });
+});
+
+describe('OutcomesService.update — verifier reassignment', () => {
+  beforeEach(() => {
+    outcomeFindFirst.mockReset();
+    outcomeUpdate.mockReset();
+    membershipFindFirst.mockReset();
+    recordAuditEvent.mockReset();
+    outcomeFindFirst.mockResolvedValue(outcome({ status: 'SUBMITTED', verifierId: 'user-1' }));
+    membershipFindFirst
+      .mockResolvedValueOnce({ role: 'OWNER' })
+      .mockResolvedValueOnce({ role: 'REVIEWER' });
+    outcomeUpdate.mockResolvedValue(
+      outcome({ status: 'SUBMITTED', verifierId: 'user-2', version: 2 }),
+    );
+  });
+
+  it('repairs a creator-assigned submitted outcome without changing its status, claim or evidence', async () => {
+    const result = await new OutcomesService().update(
+      'tenant-1',
+      'outcome-1',
+      { version: 1, verifierId: 'user-2' },
+      'user-1',
+    );
+    expect(result.status).toBe('SUBMITTED');
+    expect(outcomeUpdate).toHaveBeenCalledWith({
+      where: { id: 'outcome-1', tenantId: 'tenant-1', version: 1 },
+      data: { verifierId: 'user-2', updatedById: 'user-1', version: { increment: 1 } },
+    });
+    expect(recordAuditEvent).toHaveBeenCalledWith(
+      'tenant-1',
+      expect.objectContaining({
+        action: 'outcome_verifier_changed',
+        before: expect.objectContaining({ verifierId: 'user-1' }),
+        after: expect.objectContaining({ verifierId: 'user-2' }),
+      }),
+    );
+  });
+  it.each(['REVIEWER', 'EXECUTIVE'])('denies reassignment by %s', async (role) => {
+    membershipFindFirst.mockReset().mockResolvedValue({ role });
+    await expect(
+      new OutcomesService().update(
+        'tenant-1',
+        'outcome-1',
+        { version: 1, verifierId: 'user-2' },
+        'user-3',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(outcomeUpdate).not.toHaveBeenCalled();
+  });
+  it.each(['DRAFT', 'VERIFIED', 'REJECTED', 'VERIFICATION_REQUIRED'])(
+    'keeps %s outcomes outside the reassignment path',
+    async (status) => {
+      outcomeFindFirst.mockResolvedValue(outcome({ status }));
+      await expect(
+        new OutcomesService().update(
+          'tenant-1',
+          'outcome-1',
+          { version: 1, verifierId: 'user-2' },
+          'user-1',
+        ),
+      ).rejects.toBeInstanceOf(UnprocessableEntityException);
+      expect(outcomeUpdate).not.toHaveBeenCalled();
+    },
+  );
+  it('rejects the creator as replacement verifier', async () => {
+    await expect(
+      new OutcomesService().update(
+        'tenant-1',
+        'outcome-1',
+        { version: 1, verifierId: 'user-1' },
+        'user-1',
+      ),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(outcomeUpdate).not.toHaveBeenCalled();
+  });
+  it('requires an active account and membership in this tenant', async () => {
+    membershipFindFirst
+      .mockReset()
+      .mockResolvedValueOnce({ role: 'OWNER' })
+      .mockResolvedValueOnce(null);
+    await expect(
+      new OutcomesService().update(
+        'tenant-1',
+        'outcome-1',
+        { version: 1, verifierId: 'outside-or-disabled' },
+        'user-1',
+      ),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(membershipFindFirst).toHaveBeenLastCalledWith({
+      where: {
+        tenantId: 'tenant-1',
+        userId: 'outside-or-disabled',
+        status: 'ACTIVE',
+        user: { status: 'ACTIVE' },
+      },
+    });
+    expect(outcomeUpdate).not.toHaveBeenCalled();
+  });
+  it('retains optimistic concurrency when changing the verifier', async () => {
+    outcomeUpdate.mockRejectedValue(new FakePrismaClientKnownRequestError('P2025'));
+    await expect(
+      new OutcomesService().update(
+        'tenant-1',
+        'outcome-1',
+        { version: 1, verifierId: 'user-2' },
+        'user-1',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(recordAuditEvent).not.toHaveBeenCalled();
+  });
+  it('does not combine reassignment with a verification decision', async () => {
+    await expect(
+      new OutcomesService().update(
+        'tenant-1',
+        'outcome-1',
+        { version: 1, status: 'VERIFIED', verifierId: 'user-2' },
+        'user-1',
+      ),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(outcomeUpdate).not.toHaveBeenCalled();
   });
 });
 

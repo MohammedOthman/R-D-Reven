@@ -17,14 +17,16 @@ export class MembersService {
     });
   }
 
-  /** Only ACTIVE — a suspended member shouldn't be assignable as a new partnership owner/sponsor. Minimal shape: no role/status, this isn't for member management. */
-  async directory(tenantId: string): Promise<{ id: string; name: string; email: string }[]> {
+  /** Active accounts/members only. Roles support eligible assignee pickers; this grants no member-management access. */
+  async directory(
+    tenantId: string,
+  ): Promise<{ id: string; name: string; email: string; role: MembershipRole }[]> {
     const memberships = await prisma.membership.findMany({
-      where: { tenantId, status: 'ACTIVE' },
+      where: { tenantId, status: 'ACTIVE', user: { status: 'ACTIVE' } },
       include: { user: { select: { id: true, name: true, email: true } } },
       orderBy: { createdAt: 'asc' },
     });
-    return memberships.map((m) => m.user);
+    return memberships.map((m) => ({ ...m.user, role: m.role }));
   }
 
   async update(
