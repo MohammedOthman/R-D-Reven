@@ -81,13 +81,13 @@ describe('public home handoffs and controls', () => {
   });
   it('pauses and resumes all decorative scene motion', () => {
     const { container } = mount();
-    fireEvent.click(screen.getByRole('button', { name: 'Pause motion' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Pause motion' })[0]!);
     expect(container.firstChild).toHaveAttribute('data-motion', 'off');
-    expect(screen.getByRole('button', { name: 'Resume motion' })).toHaveAttribute(
+    expect(screen.getAllByRole('button', { name: 'Resume motion' })[0]!).toHaveAttribute(
       'aria-pressed',
       'true',
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Resume motion' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Resume motion' })[0]!);
     expect(container.firstChild).toHaveAttribute('data-motion', 'on');
   });
   it('closes mobile navigation after selecting a section and on Escape', () => {

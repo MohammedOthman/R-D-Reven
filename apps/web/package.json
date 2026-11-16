@@ -14,13 +14,18 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@iconify-icons/solar": "^2.0.7",
+    "@iconify/react": "^6.0.4",
     "@revn/ui": "workspace:*",
+    "gsap": "^3.15.1",
+    "lenis": "^1.3.27",
     "lucide-react": "^1.45.0",
     "next": "^16.3.5",
     "next-intl": "^4.14.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@revn/config": "workspace:*",
@@ -31,6 +36,7 @@
     "@types/node": "^22.20.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.5",

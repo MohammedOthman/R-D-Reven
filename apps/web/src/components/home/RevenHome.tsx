@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import {
@@ -16,8 +16,10 @@ import {
   Pause,
   Play,
   X,
-} from 'lucide-react';
+} from './HomeIcon';
 import { Link } from '@/src/i18n/navigation';
+import { MotionWorld } from './MotionWorld';
+import { useHomeChoreography } from './useHomeChoreography';
 
 const areas = ['portfolio', 'execution', 'governance', 'outcomes'] as const;
 const teams = ['alliances', 'leadership', 'reviewers'] as const;
@@ -29,10 +31,32 @@ function Arrow({ diagonal = false }: { diagonal?: boolean }) {
     <ArrowRight size={17} aria-hidden="true" />
   );
 }
+function Words({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(' ').map((word, index) => (
+        <span className="hm-word" aria-hidden="true" key={`${index}-${word}`}>
+          {word}{' '}
+        </span>
+      ))}
+    </>
+  );
+}
+function RevealHeading({ id, text }: { id: string; text: string }) {
+  return (
+    <h2 id={id} aria-label={text} data-reveal>
+      <Words text={text} />
+    </h2>
+  );
+}
 function Index({ number, children }: { number: string; children: ReactNode }) {
   return (
     <p className="hm-index">
-      <span>// {number}</span> {children}
+      <span>
+        {'// '}
+        {number}
+      </span>{' '}
+      {children}
     </p>
   );
 }
@@ -43,10 +67,12 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [motion, setMotion] = useState(true);
   const [area, setArea] = useState<(typeof areas)[number]>('portfolio');
+  const rootRef = useRef<HTMLDivElement>(null);
+  useHomeChoreography(rootRef, motion);
   const entry = pilotMode ? '/workspace' : '/sign-up';
   const closeMenu = () => setMenuOpen(false);
   return (
-    <div className="hm-page" data-motion={motion ? 'on' : 'off'}>
+    <div ref={rootRef} className="hm-page hm-page--motion" data-motion={motion ? 'on' : 'off'}>
       <a href="#home-main" className="skip-link">
         {t('skip')}
       </a>
@@ -61,6 +87,19 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             <a href="#teams">{t('nav.teams')}</a>
           </nav>
           <div className="hm-nav-actions">
+            <button
+              className="hm-top-motion"
+              onClick={() => setMotion(!motion)}
+              aria-label={t(motion ? 'pause' : 'play')}
+              aria-pressed={!motion}
+            >
+              {motion ? (
+                <Pause size={15} aria-hidden="true" />
+              ) : (
+                <Play size={15} aria-hidden="true" />
+              )}
+              <span>{t(motion ? 'pause' : 'play')}</span>
+            </button>
             <Link
               href="/"
               locale={locale === 'en' ? 'ar' : 'en'}
@@ -112,39 +151,58 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
       </header>
       <main id="home-main">
         <section className="hm-container hm-hero" aria-labelledby="home-heading">
-          <p className="hm-eyebrow">
-            <i />
-            {t('category')}
-          </p>
-          <h1 id="home-heading">
-            <span>{t('headline.first')} </span>
-            <span>{t('headline.second')} </span>
-            <span className="hm-soft">{t('headline.third')}</span>
-          </h1>
-          <p className="hm-hero-lead">
-            <strong>{t('positioning')}</strong>
-            <span>{t('heroDescription')}</span>
-          </p>
-          <ul className="hm-proof-points">
-            <li>{t('proof.ownership')}</li>
-            <li>{t('proof.evidence')}</li>
-            <li>{t('proof.bilingual')}</li>
-          </ul>
-          <div className="hm-hero-bottom">
-            <div className="hm-entry">
-              <div className="hm-entry-actions">
-                <Link href={entry} prefetch={false} className="hm-button">
-                  {t(pilotMode ? 'explorePilot' : 'getStarted')} <Arrow diagonal />
-                </Link>
-                <a href="#platform" className="hm-text-link">
-                  {t('secondaryCta')} <Arrow />
-                </a>
+          <div className="hm-hero-scene">
+            <MotionWorld variant="hero" paused={!motion} />
+          </div>
+          <div className="hm-hero-copy">
+            <p className="hm-eyebrow">
+              <i />
+              {t('category')}
+            </p>
+            <h1
+              id="home-heading"
+              aria-label={`${t('headline.first')} ${t('headline.second')} ${t('headline.third')}`}
+            >
+              <span>
+                <Words text={t('headline.first')} />
+              </span>
+              <span>
+                <Words text={t('headline.second')} />
+              </span>
+              <span className="hm-soft">
+                <Words text={t('headline.third')} />
+              </span>
+            </h1>
+            <p className="hm-hero-lead">
+              <strong>{t('positioning')}</strong>
+              <span>{t('heroDescription')}</span>
+            </p>
+            <ul className="hm-proof-points">
+              <li>{t('proof.ownership')}</li>
+              <li>{t('proof.evidence')}</li>
+              <li>{t('proof.bilingual')}</li>
+            </ul>
+            <div className="hm-hero-bottom">
+              <div className="hm-entry">
+                <div className="hm-entry-actions">
+                  <Link href={entry} prefetch={false} className="hm-button">
+                    {t(pilotMode ? 'explorePilot' : 'getStarted')} <Arrow diagonal />
+                  </Link>
+                  <a href="#platform" className="hm-text-link">
+                    {t('secondaryCta')} <Arrow />
+                  </a>
+                </div>
+                <p className="hm-entry-note">{t(pilotMode ? 'pilotNote' : 'entryNote')}</p>
               </div>
-              <p className="hm-entry-note">{t(pilotMode ? 'pilotNote' : 'entryNote')}</p>
+              <a href="#why-it-matters" className="hm-scroll">
+                <ArrowDown size={15} aria-hidden="true" /> {t('scroll')}
+              </a>
             </div>
-            <a href="#why-it-matters" className="hm-scroll">
-              <ArrowDown size={15} aria-hidden="true" /> {t('scroll')}
-            </a>
+          </div>
+          <div className="hm-hero-route" aria-hidden="true">
+            <span>01 / {t('story.nodes.agreement')}</span>
+            <span>02 / {t('story.nodes.work')}</span>
+            <span>03 / {t('story.nodes.result')}</span>
           </div>
         </section>
         <section
@@ -154,13 +212,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
         >
           <Index number="01">{t('story.eyebrow')}</Index>
           <div className="hm-film">
-            <Image
-              className="hm-film-art"
-              src="/brand/home/partnership-city-dark.webp"
-              alt=""
-              fill
-              sizes="(max-width: 800px) calc(100vw - 40px), (max-width: 1280px) calc(100vw - 80px), 1200px"
-            />
+            <MotionWorld variant="film" paused={!motion} />
             <div className="hm-film-top">
               <span className="hm-film-status">
                 <i />
@@ -169,7 +221,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
               <span className="hm-film-meta">REVEN / 01</span>
             </div>
             <div className="hm-film-copy">
-              <h2 id="story-heading">{t('story.title')}</h2>
+              <RevealHeading id="story-heading" text={t('story.title')} />
               <p>{t('story.description')}</p>
             </div>
             <ol className="hm-film-journey">
@@ -201,7 +253,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             <div className="hm-section-heading">
               <div>
                 <Index number="02">{t('why.eyebrow')}</Index>
-                <h2 id="why-heading">{t('why.title')}</h2>
+                <RevealHeading id="why-heading" text={t('why.title')} />
               </div>
               <p>{t('why.description')}</p>
             </div>
@@ -226,19 +278,12 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           <div className="hm-container">
             <Index number="03">{t('platform.eyebrow')}</Index>
             <div className="hm-platform-heading">
-              <h2 id="platform-heading">{t('platform.title')}</h2>
+              <RevealHeading id="platform-heading" text={t('platform.title')} />
               <p>{t('platform.description')}</p>
             </div>
             <div className="hm-explorer" data-area={area}>
               <div className="hm-explorer-scene">
-                <Image
-                  className="hm-blueprint-art"
-                  src="/brand/home/partnership-city-light.webp"
-                  alt=""
-                  width={1672}
-                  height={941}
-                  sizes="(max-width: 800px) 100vw, 1200px"
-                />
+                <MotionWorld variant="platform" paused={!motion} focus={areas.indexOf(area)} />
                 <div className="hm-scene-markers" aria-hidden="true">
                   {areas.map((key, index) => (
                     <span
@@ -310,7 +355,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             <div className="hm-section-heading">
               <div>
                 <Index number="04">{t('system.eyebrow')}</Index>
-                <h2 id="system-heading">{t('system.title')}</h2>
+                <RevealHeading id="system-heading" text={t('system.title')} />
               </div>
               <p>{t('system.description')}</p>
             </div>
@@ -338,7 +383,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           <div className="hm-section-heading">
             <div>
               <Index number="05">{t('teams.eyebrow')}</Index>
-              <h2 id="teams-heading">{t('teams.title')}</h2>
+              <RevealHeading id="teams-heading" text={t('teams.title')} />
             </div>
             <p>{t('teams.description')}</p>
           </div>
