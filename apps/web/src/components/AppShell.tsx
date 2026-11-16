@@ -31,6 +31,7 @@ import {
 import { Link, useRouter, usePathname } from '@/src/i18n/navigation';
 import { activeNavIdFromPathname } from '@/src/lib/activeNavId';
 import { signOut, switchPilotRole } from '@/src/lib/auth/client';
+import { pilotDestination } from '@/src/lib/auth/pilot-destination';
 import { LocaleSwitcherLink } from '@/src/components/LocaleSwitcherLink';
 import { WorkspaceFormatProvider } from './WorkspaceFormat';
 import type { AuthUser } from '@/src/lib/auth/types';
@@ -176,7 +177,8 @@ export function AppShell({
     setSwitchingRole(true);
     try {
       await switchPilotRole(nextRole as 'OWNER' | 'EXECUTIVE' | 'REVIEWER');
-      router.replace('/');
+      const destination = pilotDestination(pathname, nextRole as MembershipRole);
+      router.replace(destination, { scroll: destination !== pathname });
       router.refresh();
     } catch {
       toast({ title: t('pilot.switchError'), variant: 'error' });

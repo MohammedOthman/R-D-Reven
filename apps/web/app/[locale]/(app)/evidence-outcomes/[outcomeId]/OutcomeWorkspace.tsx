@@ -35,6 +35,8 @@ import {
 } from '@revn/ui';
 import { useRouter } from '@/src/i18n/navigation';
 import { updateOutcome } from '@/src/lib/outcomes/client';
+import { outcomeVerifiers } from '@/src/lib/outcomes/verifiers';
+import { roleLabelKey } from '@/src/lib/tenant/roleLabels';
 import { createContribution } from '@/src/lib/contributions/client';
 import {
   createEvidence,
@@ -185,6 +187,11 @@ export function OutcomeWorkspace({
                 {t('availableActionsLabel')}
               </p>
               <div className="flex flex-wrap gap-2">
+                {outcome.status === 'SUBMITTED' && canSubmit && (
+                  <Button variant="secondary" size="sm" onClick={() => setSubmitOpen(true)}>
+                    {t('changeVerifierButton')}
+                  </Button>
+                )}
                 {nextStatuses.includes('SUBMITTED') && canSubmit && (
                   <Button variant="secondary" size="sm" onClick={() => setSubmitOpen(true)}>
                     {t('submitButton')}
@@ -366,19 +373,23 @@ function SubmitDialog({
   onSaved: () => void;
 }) {
   const t = useTranslations('evidenceOutcomes');
+  const tRole = useTranslations();
+  const verifiers = outcomeVerifiers(members, outcome.createdById);
   const [verifierId, setVerifierId] = useState(outcome.verifierId ?? NONE);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const reassigning = outcome.status === 'SUBMITTED';
+  const validVerifier = verifiers.some((member) => member.id === verifierId);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (verifierId === NONE) return;
+    if (!validVerifier) return;
     setSubmitting(true);
     setError(null);
     try {
       await updateOutcome(tenantId, outcome.id, {
         version: outcome.version,
-        status: 'SUBMITTED',
+        ...(reassigning ? {} : { status: 'SUBMITTED' as const }),
         verifierId,
       });
       onOpenChange(false);
@@ -395,27 +406,40 @@ function SubmitDialog({
       <DialogContent closeLabel={t('cancel')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <DialogHeader>
-            <DialogTitle>{t('submitDialogTitle')}</DialogTitle>
-            <DialogDescription>{t('submitDialogDescription')}</DialogDescription>
+            <DialogTitle>
+              {t(reassigning ? 'changeVerifierButton' : 'submitDialogTitle')}
+            </DialogTitle>
+            <DialogDescription>
+              {t(reassigning ? 'changeVerifierDescription' : 'submitDialogDescription')}
+            </DialogDescription>
           </DialogHeader>
 
-          {error && <p className="text-status-alert text-sm">{error}</p>}
+          {error && (
+            <p role="alert" className="text-status-alert text-sm">
+              {error}
+            </p>
+          )}
 
           <FormField id="outcome-verifier" label={t('verifierLabel')}>
-            <Select value={verifierId} onValueChange={setVerifierId}>
+            <Select value={validVerifier ? verifierId : NONE} onValueChange={setVerifierId}>
               <SelectTrigger id="outcome-verifier">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>{t('selectVerifierPlaceholder')}</SelectItem>
-                {members.map((m) => (
+                {verifiers.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
-                    {m.name}
+                    {m.name} · {tRole(roleLabelKey(m.role))}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </FormField>
+          {verifiers.length === 0 && (
+            <p role="status" className="text-muted-body text-sm">
+              {t('noEligibleVerifier')}
+            </p>
+          )}
 
           <DialogFooter>
             <DialogClose asChild>
@@ -423,8 +447,12 @@ function SubmitDialog({
                 {t('cancel')}
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={verifierId === NONE} loading={submitting}>
-              {t('submitButton')}
+            <Button
+              type="submit"
+              disabled={!validVerifier || (reassigning && verifierId === outcome.verifierId)}
+              loading={submitting}
+            >
+              {t(reassigning ? 'changeVerifierButton' : 'submitButton')}
             </Button>
           </DialogFooter>
         </form>

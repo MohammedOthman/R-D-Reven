@@ -776,7 +776,7 @@
     "uploadFileButton": "رفع ملف",
     "uploading": "جارٍ الرفع…",
     "submitDialogTitle": "إرسال للتحقق",
-    "submitDialogDescription": "OUT-02: عيِّن مدقِّقًا مخوَّلًا — مالك أو مسؤول أو مراجع.",
+    "submitDialogDescription": "اختر مالكًا أو مشرفًا أو مراجعًا نشطًا غير منشئ النتيجة للتحقق منها باستقلالية.",
     "selectVerifierPlaceholder": "اختر مدقِّقًا",
     "verifyDialogTitle": "تحقق من هذه النتيجة",
     "verifyDialogDescription": "التحقق يحافظ على الأدلة المرتبطة دون تغيير — لا يمكن تعديلها بعد ذلك.",
@@ -793,7 +793,10 @@
     },
     "downloadFileButton": "تنزيل الملف",
     "openSourceButton": "فتح المصدر",
-    "downloadError": "تعذّر تنزيل الملف. حاول مرة أخرى."
+    "downloadError": "تعذّر تنزيل الملف. حاول مرة أخرى.",
+    "changeVerifierButton": "تغيير المراجع",
+    "changeVerifierDescription": "اختر شخصًا آخر مخوّلًا لمراجعة هذه النتيجة المقدّمة.",
+    "noEligibleVerifier": "لا يوجد مراجع مستقل متاح. اطلب من مسؤول مساحة العمل إضافة مالك أو مشرف أو مراجع أو إعادة تفعيله."
   },
   "audit": {
     "eyebrow": "Reven — التدقيق",

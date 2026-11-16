@@ -18,9 +18,10 @@ export interface Invitation {
   createdAt: string;
 }
 
-/** The minimal shape `/tenants/:tenantId/members/directory` returns — for owner/sponsor pickers, not member management. */
+/** Active directory entries for owner/sponsor/verifier pickers, with a read-only role. */
 export interface MemberSummary {
   id: string;
   name: string;
   email: string;
+  role: MembershipRole;
 }

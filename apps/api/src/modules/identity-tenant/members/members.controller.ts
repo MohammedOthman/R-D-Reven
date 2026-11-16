@@ -49,7 +49,7 @@ export class MembersController {
   @RequireRole(...DIRECTORY_READ_ROLES)
   @ApiOperation({
     summary:
-      'List active members as id/name/email only — for assigning an owner or sponsor, not member management.',
+      'List active members as id/name/email/role — for eligible assignee pickers, not member management.',
   })
   async directory(@Param('tenantId') tenantId: string) {
     const members = await this.membersService.directory(tenantId);
