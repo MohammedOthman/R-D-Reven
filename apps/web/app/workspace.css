@@ -1,7 +1,3 @@
-/* Reven workspace: one visual system for portfolio, records and task flows. */
-.rv-motion-root {
-  display: contents;
-}
 .rv-workspace {
   --rv-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --rv-line: #e3e6ee;
@@ -53,37 +49,7 @@
 .rv-route-content {
   animation: rv-route-in 240ms var(--rv-ease);
 }
-.rv-motion-control {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  gap: 8px;
-  min-width: 44px;
-  min-height: 44px;
-  border: 1px solid #dce1ed;
-  border-radius: 10px;
-  background: white;
-  color: #454d60;
-  font-size: 13px;
-  padding: 10px;
-  transition:
-    background-color 150ms,
-    color 150ms;
-}
-.rv-motion-control:hover {
-  background: #eef2ff;
-  color: #1e47e0;
-}
-.rv-motion-control:disabled {
-  cursor: default;
-}
-.rv-motion-control--compact {
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-}
+
 .rv-pilot-strip {
   display: flex;
   align-items: center;
@@ -1434,24 +1400,7 @@
     flex-basis: 100%;
   }
 }
-/* A persisted pause and device preference both stop motion, including portals. */
-[data-motion='off'] *,
-[data-motion='off'] *::before,
-[data-motion='off'] *::after,
-html[data-workspace-motion='off'] [data-slot='dialog-content'],
-html[data-workspace-motion='off'] [data-slot='dialog-overlay'] {
-  animation: none !important;
-  transition: none !important;
-}
-[data-motion='off'] .rv-button,
-[data-motion='off'] .rv-hero-action,
-[data-motion='off'] .rv-metric-icon,
-[data-motion='off'] .rv-arrow,
-[data-motion='off'] .rv-workflow-arrow {
-  transform: none !important;
-  translate: none !important;
-  scale: 1 !important;
-}
+
 @media (prefers-reduced-motion: reduce) {
   .rv-stage-results,
   .rv-route-content,
@@ -1465,6 +1414,7 @@ html[data-workspace-motion='off'] [data-slot='dialog-overlay'] {
   .rv-workspace *,
   .rv-workspace *::before,
   .rv-workspace *::after {
+    animation: none !important;
     transition: none !important;
   }
   .rv-hero-action,
@@ -1481,7 +1431,6 @@ html[data-workspace-motion='off'] [data-slot='dialog-overlay'] {
   }
 }
 @media print {
-  .rv-motion-control,
   .rv-pilot-strip {
     display: none;
   }

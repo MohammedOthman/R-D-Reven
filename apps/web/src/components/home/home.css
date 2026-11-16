@@ -291,24 +291,7 @@
   max-width: 420px;
   margin: 0;
 }
-.hm-motion-button {
-  position: absolute;
-  inset-inline-end: 32px;
-  inset-block-end: 30px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 10px 14px;
-  border: 1px solid #65769a;
-  border-radius: 99px;
-  color: #e0e8ff;
-  background: #101a32;
-  font-size: 11px !important;
-}
-.hm-motion-button:hover {
-  background: #26375b;
-}
+
 .hm-dark {
   background: #0b101d;
   color: #f3f5ff;
@@ -718,12 +701,7 @@
   letter-spacing: 0.04em;
   color: #68748e;
 }
-.hm-page[data-motion='off'] * {
-  animation-play-state: paused !important;
-}
-.hm-page[data-motion='off'] .hm-button:hover {
-  transform: none;
-}
+
 html[lang='ar'] .hm-page {
   --hm-ink: #333e63;
 }
@@ -1516,20 +1494,7 @@ html[lang='ar'] .hm-film-journey svg {
   border-top: 1px solid #abc1f1;
   padding-top: 12px;
 }
-.hm-top-motion {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: #53658a;
-  background: transparent;
-  border: 0;
-  min-height: 36px;
-  padding: 5px;
-}
-.hm-top-motion > span {
-  font-size: 10px;
-}
+
 .hm-page--motion .hm-nav-actions {
   gap: 22px;
 }
@@ -1576,8 +1541,7 @@ html[lang='ar'] .hm-film-journey svg {
 }
 .hm-page--motion .hm-film-copy,
 .hm-page--motion .hm-film-top,
-.hm-page--motion .hm-film-journey,
-.hm-page--motion .hm-motion-button {
+.hm-page--motion .hm-film-journey {
   z-index: 2;
 }
 .hm-page--motion .hm-film-copy {
@@ -1639,9 +1603,7 @@ html[lang='ar'] .hm-page--motion .hm-film:after {
     inset-inline-start: 330px;
     inset-inline-end: -220px;
   }
-  .hm-top-motion > span {
-    display: none;
-  }
+
   .hm-page--motion .hm-explorer-content {
     width: 38%;
   }
@@ -1758,9 +1720,7 @@ html[lang='ar'] .hm-page--motion .hm-film:after {
 .hm-page--motion .hm-explorer-scene {
   width: 70%;
 }
-.hm-top-motion {
-  min-width: 36px;
-}
+
 html[lang='ar'] .hm-page--motion .hm-film:after {
   background:
     linear-gradient(-90deg, #0f1629 0%, #0f1629db 22%, transparent 62%),
@@ -1891,10 +1851,6 @@ html[dir='rtl'] .hm-workflow li:after {
   100% {
     box-shadow: 0 0 0 9px #8da4ff00;
   }
-}
-.hm-page[data-motion='off'] *:before,
-.hm-page[data-motion='off'] *:after {
-  animation-play-state: paused !important;
 }
 
 /* Kinetic type: the journey in two rows travelling in opposite directions. */

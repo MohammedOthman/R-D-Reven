@@ -88,7 +88,6 @@ JSON requests, evidence uploads, and downloads.
 
 The portfolio overview includes relationship health, a selectable stage chart,
 and visual workflow guidance. Charts use saved workspace data; unassessed
-health is shown explicitly. The top-bar motion control pauses transitions and
-the workflow connector, and remembers the choice. Device reduced-motion
-settings take priority. See `quality/VISUAL_WORKSPACE.md` for design, data
+health is shown explicitly. Device reduced-motion settings remove animations
+and transitions. See `quality/VISUAL_WORKSPACE.md` for design, data
 scope and verification details.

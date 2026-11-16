@@ -16,7 +16,7 @@ Applied skill source revision: `3cc9345` (14 November 2026). The user requested 
 
 ## Motion stack and responsibility
 
-Three.js renders the moving network. GSAP owns heading/section choreography. Lenis is the sole smooth-scroll engine; it is lighter and simpler for this page than Locomotive Scroll. Lenis and GSAP are bypassed when motion is paused or the visitor requests reduced motion. CSS handles simple hover/focus feedback.
+Three.js renders the moving network. GSAP owns heading/section choreography. Lenis is the sole smooth-scroll engine; it is lighter and simpler for this page than Locomotive Scroll. Lenis and GSAP are bypassed when the visitor requests reduced motion. CSS handles simple hover/focus feedback.
 
 Generated city images from the previous revision remain as complete static posters for no JavaScript, reduced motion, or WebGL failure. A still image is never described as the animated scene. The new scene uses original procedural 3D geometry and interface/data graphics; no reference assets or scene code are copied.
 
@@ -35,11 +35,11 @@ Generated city images from the previous revision remain as complete static poste
 
 The four non-WebGL sections draw on Canvas 2D through `AmbientMotion` and `create-ambient-field.ts`. The merge evaluates a metaball field on a 6px grid, paints the fill from that grid and traces the outline with marching squares, which the contour map reuses. The ribbons mirror for Arabic. The kinetic band is CSS only; Arabic uses tinted fills because outline strokes cut through the joins of connected script. A CSS signal still crosses the four workflow rails in order on a 6 second loop.
 
-Each canvas picture is a pure function of elapsed time, so pausing or reduced motion leaves a composed still frame. The layers share the WebGL gates: intersection, tab visibility, window focus, the pause control and `prefers-reduced-motion`, at 30 fps with pixel ratio capped at 1.5 (1.25 below 800px).
+Each canvas picture is a pure function of elapsed time, so reduced motion leaves a composed still frame. The layers share the WebGL gates: intersection, tab visibility, window focus and `prefers-reduced-motion`, at 30 fps with pixel ratio capped at 1.5 (1.25 below 800px).
 
 ## Verification
 
-Before release, verify the initial viewport, dark scene, capability explorer, keyboard controls, Arabic RTL, mobile layouts, motion pause/resume, reduced motion, WebGL fallback, hidden-tab and offscreen suspension. Capture a short recording showing actual signals and rings moving. Check the production build and existing web tests, then verify the same behavior on CranL.
+Before release, verify the initial viewport, dark scene, capability explorer, keyboard controls, Arabic RTL, mobile layouts, reduced motion, WebGL fallback, hidden-tab and offscreen suspension. Capture a short recording showing actual signals and rings moving. Check the production build and existing web tests, then verify the same behavior on CranL.
 
 ## Icon attribution
 
@@ -49,7 +49,7 @@ Homepage interface icons use the [Solar icon set via Iconify](https://icon-sets.
 
 Production-mode browser verification at 1440px and 390px confirmed:
 
-- Different rendered pixels while running; identical pixels while paused.
+- Different rendered pixels while running.
 - Zero active canvas render loops with all scenes offscreen.
 - Zero active loops under reduced motion, with the complete poster visible.
 - Rendering resumes after reduced motion is disabled.
@@ -59,4 +59,4 @@ Production-mode browser verification at 1440px and 390px confirmed:
 - WebGL failure keeps the poster and semantic page usable.
 - No page or console errors during the normal path.
 
-The render budget is 30 fps, pixel ratio is capped at 1.5 (1.25 on narrow screens), and each scene defers WebGL creation until it enters view. Window blur, document visibility, explicit pause, and intersection state directly gate the render loop. Geometry, materials, renderer state, GSAP contexts/tweens, Lenis, listeners, and observers are disposed by their owning effect. The first-viewport message remains fully opaque during its short introduction.
+The render budget is 30 fps, pixel ratio is capped at 1.5 (1.25 on narrow screens), and each scene defers WebGL creation until it enters view. Window blur, document visibility, and intersection state directly gate the render loop. Geometry, materials, renderer state, GSAP contexts/tweens, Lenis, listeners, and observers are disposed by their owning effect. The first-viewport message remains fully opaque during its short introduction.

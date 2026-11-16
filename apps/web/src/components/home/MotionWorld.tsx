@@ -6,25 +6,11 @@ import type { createMotionWorld, WorldVariant } from './create-motion-world';
 
 type World = ReturnType<typeof createMotionWorld>;
 
-export function MotionWorld({
-  variant,
-  paused,
-  focus = -1,
-}: {
-  variant: WorldVariant;
-  paused: boolean;
-  focus?: number;
-}) {
+export function MotionWorld({ variant, focus = -1 }: { variant: WorldVariant; focus?: number }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const worldRef = useRef<World | null>(null);
-  const pausedRef = useRef(paused);
   const focusRef = useRef(focus);
-  const syncRef = useRef(() => {});
-  useEffect(() => {
-    pausedRef.current = paused;
-    syncRef.current();
-  }, [paused]);
   useEffect(() => {
     focusRef.current = focus;
     worldRef.current?.setFocus(focus);
@@ -60,23 +46,12 @@ export function MotionWorld({
       worldRef.current?.resize(width, height);
     };
     const sync = () => {
-      const active =
-        visible && focused && !pausedRef.current && !media.matches && !document.hidden && !failed;
+      const active = visible && focused && !media.matches && !document.hidden && !failed;
       worldRef.current?.setActive(active);
       if (active && !worldRef.current && !loading) void start();
     };
-    syncRef.current = sync;
     async function start() {
-      if (
-        disposed ||
-        pausedRef.current ||
-        media.matches ||
-        failed ||
-        loading ||
-        worldRef.current ||
-        !visible
-      )
-        return;
+      if (disposed || media.matches || failed || loading || worldRef.current || !visible) return;
       loading = true;
       try {
         const { createMotionWorld } = await import('./create-motion-world');
@@ -114,7 +89,7 @@ export function MotionWorld({
       sync();
     };
     const onPointer = (event: PointerEvent) => {
-      if (event.pointerType === 'touch' || media.matches || pausedRef.current || !visible) return;
+      if (event.pointerType === 'touch' || media.matches || !visible) return;
       worldRef.current?.setPointer(
         (event.clientX / window.innerWidth - 0.5) * 2,
         (event.clientY / window.innerHeight - 0.5) * 2,
@@ -143,7 +118,6 @@ export function MotionWorld({
     canvas.addEventListener('webglcontextlost', onLoss);
     return () => {
       disposed = true;
-      syncRef.current = () => {};
       intersection.disconnect();
       sizing.disconnect();
       media.removeEventListener('change', onMedia);

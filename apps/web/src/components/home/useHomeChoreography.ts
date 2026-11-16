@@ -3,10 +3,10 @@
 import { useEffect, type RefObject } from 'react';
 
 /** GSAP owns DOM choreography; Lenis is the only smooth-scroll engine. */
-export function useHomeChoreography(rootRef: RefObject<HTMLDivElement | null>, enabled: boolean) {
+export function useHomeChoreography(rootRef: RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || !enabled || typeof window.matchMedia !== 'function') return;
+    if (!root || typeof window.matchMedia !== 'function') return;
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     let disposed = false,
       stop: (() => void) | undefined,
@@ -108,5 +108,5 @@ export function useHomeChoreography(rootRef: RefObject<HTMLDivElement | null>, e
       media.removeEventListener('change', change);
       stop?.();
     };
-  }, [rootRef, enabled]);
+  }, [rootRef]);
 }

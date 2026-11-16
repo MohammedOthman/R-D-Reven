@@ -33,7 +33,6 @@ import { activeNavIdFromPathname } from '@/src/lib/activeNavId';
 import { signOut, switchPilotRole } from '@/src/lib/auth/client';
 import { pilotDestination } from '@/src/lib/auth/pilot-destination';
 import { LocaleSwitcherLink } from '@/src/components/LocaleSwitcherLink';
-import { WorkspaceMotion, MotionControl } from './WorkspaceMotion';
 import { WorkspaceFormatProvider } from './WorkspaceFormat';
 import type { AuthUser } from '@/src/lib/auth/types';
 import type { Tenant, MembershipRole } from '@/src/lib/tenant/types';
@@ -50,14 +49,12 @@ export function AppShell({
   tenant,
   role,
   pilotMode = false,
-  initialMotionEnabled = true,
 }: {
   children: ReactNode;
   user: AuthUser;
   tenant: Tenant;
   role: MembershipRole;
   pilotMode?: boolean;
-  initialMotionEnabled?: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -242,127 +239,120 @@ export function AppShell({
 
   return (
     <WorkspaceFormatProvider timezone={tenant.timezone}>
-      <WorkspaceMotion initialEnabled={initialMotionEnabled}>
-        <div className="rv-workspace flex h-dvh w-full overflow-hidden">
-          <a href="#main-content" className="skip-link">
-            {t('common.skipToContent')}
-          </a>
-          <div className="rv-desktop-sidebar hidden lg:block">
-            <Sidebar
-              {...sidebarProps}
-              collapsed={collapsed}
-              onToggleCollapsed={() => setCollapsed((value) => !value)}
-              toggleCollapsedLabel={t('common.toggleNavigation')}
-            />
-          </div>
-          <Dialog open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-            <DialogContent
-              id="mobile-navigation"
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                mobileNavTrigger.current?.focus();
-              }}
-              showClose={false}
-              className="rv-mobile-drawer bg-navy inset-y-0 start-0 end-auto top-0 left-0 h-dvh max-h-dvh w-[min(20rem,100vw)] max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0 rtl:left-auto"
-            >
-              <DialogTitle className="sr-only">{t('common.navigation')}</DialogTitle>
-              <DialogDescription className="sr-only">
-                {t('common.navigationDescription')}
-              </DialogDescription>
-              <button
-                type="button"
-                onClick={() => setMobileNavOpen(false)}
-                aria-label={t('common.closeNavigation')}
-                className="absolute end-3 top-2.5 z-10 flex size-11 items-center justify-center rounded-md text-white/80 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
-              >
-                <X className="size-5" aria-hidden="true" />
-              </button>
-              <div
-                className="h-full"
-                onClick={(event) => {
-                  if ((event.target as HTMLElement).closest('a')) setMobileNavOpen(false);
-                }}
-              >
-                <Sidebar {...sidebarProps} collapsed={false} className="!w-full" />
-              </div>
-            </DialogContent>
-          </Dialog>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <TopNav
-              toggleButtonRef={mobileNavTrigger}
-              onToggleSidebar={() => setMobileNavOpen(true)}
-              sidebarOpen={mobileNavOpen}
-              toggleSidebarLabel={t('common.toggleNavigation')}
-              tenantSlot={
-                <div className="flex min-w-0 items-center gap-3">
-                  <Building2
-                    className="text-muted-body hidden size-4 shrink-0 sm:block"
-                    aria-hidden="true"
-                  />
-                  <span className="text-ink max-w-[38vw] truncate text-sm font-semibold sm:max-w-64">
-                    {tenant.name}
-                  </span>
-                  <span className="text-muted-body hidden border-s border-[var(--border-default)] ps-3 text-sm md:block">
-                    {currentPage}
-                  </span>
-                </div>
-              }
-              userSlot={
-                <>
-                  <MotionControl />
-                  <LocaleSwitcherLink className="text-muted-body hover:bg-canvas hover:text-ink inline-flex min-h-11 items-center rounded-md px-3 text-sm" />
-                </>
-              }
-            />
-            <main
-              id="main-content"
-              tabIndex={-1}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain focus:outline-none"
-            >
-              <div className="rv-workspace-content mx-auto w-full max-w-[1600px] p-4 pb-12 sm:p-8 sm:pb-12">
-                {pilotMode && (
-                  <aside
-                    aria-label={t('pilot.label')}
-                    aria-busy={switchingRole}
-                    className="rv-pilot-strip"
-                  >
-                    <div className="rv-pilot-copy">
-                      <p className="text-ink font-semibold">{t('pilot.bannerTitle')}</p>
-                      <p className="text-ink mt-1 leading-relaxed">
-                        {t('pilot.bannerDescription')}
-                      </p>
-                    </div>
-                    <div className="rv-pilot-persona flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <label htmlFor="pilot-role" className="text-ink font-medium">
-                        {t('pilot.tryAs')}
-                      </label>
-                      <select
-                        id="pilot-role"
-                        value={role}
-                        disabled={switchingRole}
-                        onChange={(event) => void handlePilotRole(event.target.value)}
-                        className="text-ink bg-surface min-h-11 rounded-md border border-[var(--border-default)] px-3 text-sm focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none disabled:opacity-50"
-                      >
-                        {(['OWNER', 'EXECUTIVE', 'REVIEWER'] as const).map((value) => (
-                          <option key={value} value={value}>
-                            {t(roleLabelKey(value))}
-                          </option>
-                        ))}
-                      </select>
-                      <p role="status" className="text-muted-body rv-pilot-hint text-[13px]">
-                        {switchingRole ? t('pilot.switchingRole') : t('pilot.roleHint')}
-                      </p>
-                    </div>
-                  </aside>
-                )}
-                <div key={pathname} className="rv-route-content">
-                  {children}
-                </div>
-              </div>
-            </main>
-          </div>
+      <div className="rv-workspace flex h-dvh w-full overflow-hidden">
+        <a href="#main-content" className="skip-link">
+          {t('common.skipToContent')}
+        </a>
+        <div className="rv-desktop-sidebar hidden lg:block">
+          <Sidebar
+            {...sidebarProps}
+            collapsed={collapsed}
+            onToggleCollapsed={() => setCollapsed((value) => !value)}
+            toggleCollapsedLabel={t('common.toggleNavigation')}
+          />
         </div>
-      </WorkspaceMotion>
+        <Dialog open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          <DialogContent
+            id="mobile-navigation"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              mobileNavTrigger.current?.focus();
+            }}
+            showClose={false}
+            className="rv-mobile-drawer bg-navy inset-y-0 start-0 end-auto top-0 left-0 h-dvh max-h-dvh w-[min(20rem,100vw)] max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0 rtl:left-auto"
+          >
+            <DialogTitle className="sr-only">{t('common.navigation')}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('common.navigationDescription')}
+            </DialogDescription>
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label={t('common.closeNavigation')}
+              className="absolute end-3 top-2.5 z-10 flex size-11 items-center justify-center rounded-md text-white/80 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+            >
+              <X className="size-5" aria-hidden="true" />
+            </button>
+            <div
+              className="h-full"
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest('a')) setMobileNavOpen(false);
+              }}
+            >
+              <Sidebar {...sidebarProps} collapsed={false} className="!w-full" />
+            </div>
+          </DialogContent>
+        </Dialog>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopNav
+            toggleButtonRef={mobileNavTrigger}
+            onToggleSidebar={() => setMobileNavOpen(true)}
+            sidebarOpen={mobileNavOpen}
+            toggleSidebarLabel={t('common.toggleNavigation')}
+            tenantSlot={
+              <div className="flex min-w-0 items-center gap-3">
+                <Building2
+                  className="text-muted-body hidden size-4 shrink-0 sm:block"
+                  aria-hidden="true"
+                />
+                <span className="text-ink max-w-[38vw] truncate text-sm font-semibold sm:max-w-64">
+                  {tenant.name}
+                </span>
+                <span className="text-muted-body hidden border-s border-[var(--border-default)] ps-3 text-sm md:block">
+                  {currentPage}
+                </span>
+              </div>
+            }
+            userSlot={
+              <LocaleSwitcherLink className="text-muted-body hover:bg-canvas hover:text-ink inline-flex min-h-11 items-center rounded-md px-3 text-sm" />
+            }
+          />
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain focus:outline-none"
+          >
+            <div className="rv-workspace-content mx-auto w-full max-w-[1600px] p-4 pb-12 sm:p-8 sm:pb-12">
+              {pilotMode && (
+                <aside
+                  aria-label={t('pilot.label')}
+                  aria-busy={switchingRole}
+                  className="rv-pilot-strip"
+                >
+                  <div className="rv-pilot-copy">
+                    <p className="text-ink font-semibold">{t('pilot.bannerTitle')}</p>
+                    <p className="text-ink mt-1 leading-relaxed">{t('pilot.bannerDescription')}</p>
+                  </div>
+                  <div className="rv-pilot-persona flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <label htmlFor="pilot-role" className="text-ink font-medium">
+                      {t('pilot.tryAs')}
+                    </label>
+                    <select
+                      id="pilot-role"
+                      value={role}
+                      disabled={switchingRole}
+                      onChange={(event) => void handlePilotRole(event.target.value)}
+                      className="text-ink bg-surface min-h-11 rounded-md border border-[var(--border-default)] px-3 text-sm focus-visible:ring-2 focus-visible:ring-[var(--ring-accent)] focus-visible:outline-none disabled:opacity-50"
+                    >
+                      {(['OWNER', 'EXECUTIVE', 'REVIEWER'] as const).map((value) => (
+                        <option key={value} value={value}>
+                          {t(roleLabelKey(value))}
+                        </option>
+                      ))}
+                    </select>
+                    <p role="status" className="text-muted-body rv-pilot-hint text-[13px]">
+                      {switchingRole ? t('pilot.switchingRole') : t('pilot.roleHint')}
+                    </p>
+                  </div>
+                </aside>
+              )}
+              <div key={pathname} className="rv-route-content">
+                {children}
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
     </WorkspaceFormatProvider>
   );
 }

@@ -3,16 +3,10 @@
 import { useEffect, useRef } from 'react';
 import { createAmbientField, type AmbientVariant } from './create-ambient-field';
 
-/** Decorative background motion. Runs only while on screen, unpaused and motion is allowed. */
-export function AmbientMotion({ variant, paused }: { variant: AmbientVariant; paused: boolean }) {
+/** Decorative background motion. Runs only while on screen and motion is allowed. */
+export function AmbientMotion({ variant }: { variant: AmbientVariant }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pausedRef = useRef(paused);
-  const syncRef = useRef(() => {});
-  useEffect(() => {
-    pausedRef.current = paused;
-    syncRef.current();
-  }, [paused]);
   useEffect(() => {
     const shell = shellRef.current,
       canvas = canvasRef.current;
@@ -30,11 +24,10 @@ export function AmbientMotion({ variant, paused }: { variant: AmbientVariant; pa
     let visible = false,
       focused = true;
     const sync = () => {
-      const active = visible && focused && !pausedRef.current && !media.matches && !document.hidden;
+      const active = visible && focused && !media.matches && !document.hidden;
       field.setActive(active);
       if (!active) field.setPointer(0, 0, false);
     };
-    syncRef.current = sync;
     const resize = () => {
       const { width, height } = shell.getBoundingClientRect();
       field.resize(width, height);
@@ -50,7 +43,7 @@ export function AmbientMotion({ variant, paused }: { variant: AmbientVariant; pa
     const sizing = new ResizeObserver(resize);
     sizing.observe(shell);
     const onPointer = (event: PointerEvent) => {
-      if (event.pointerType === 'touch' || !visible || pausedRef.current || media.matches) return;
+      if (event.pointerType === 'touch' || !visible || media.matches) return;
       const box = shell.getBoundingClientRect();
       const x = event.clientX - box.left,
         y = event.clientY - box.top;
@@ -71,7 +64,6 @@ export function AmbientMotion({ variant, paused }: { variant: AmbientVariant; pa
     window.addEventListener('focus', onFocus);
     resize();
     return () => {
-      syncRef.current = () => {};
       intersection.disconnect();
       sizing.disconnect();
       media.removeEventListener('change', sync);

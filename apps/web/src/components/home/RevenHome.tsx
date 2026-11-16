@@ -13,8 +13,6 @@ import {
   Flag,
   Layers3,
   Menu,
-  Pause,
-  Play,
   X,
 } from './HomeIcon';
 import { Link } from '@/src/i18n/navigation';
@@ -67,14 +65,13 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
   const t = useTranslations('home');
   const locale = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [motion, setMotion] = useState(true);
   const [area, setArea] = useState<(typeof areas)[number]>('portfolio');
   const rootRef = useRef<HTMLDivElement>(null);
-  useHomeChoreography(rootRef, motion);
+  useHomeChoreography(rootRef);
   const entry = pilotMode ? '/workspace' : '/sign-up';
   const closeMenu = () => setMenuOpen(false);
   return (
-    <div ref={rootRef} className="hm-page hm-page--motion" data-motion={motion ? 'on' : 'off'}>
+    <div ref={rootRef} className="hm-page hm-page--motion">
       <a href="#home-main" className="skip-link">
         {t('skip')}
       </a>
@@ -89,19 +86,6 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             <a href="#teams">{t('nav.teams')}</a>
           </nav>
           <div className="hm-nav-actions">
-            <button
-              className="hm-top-motion"
-              onClick={() => setMotion(!motion)}
-              aria-label={t(motion ? 'pause' : 'play')}
-              aria-pressed={!motion}
-            >
-              {motion ? (
-                <Pause size={15} aria-hidden="true" />
-              ) : (
-                <Play size={15} aria-hidden="true" />
-              )}
-              <span>{t(motion ? 'pause' : 'play')}</span>
-            </button>
             <Link
               href="/"
               locale={locale === 'en' ? 'ar' : 'en'}
@@ -154,7 +138,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
       <main id="home-main">
         <section className="hm-container hm-hero" aria-labelledby="home-heading">
           <div className="hm-hero-scene">
-            <MotionWorld variant="hero" paused={!motion} />
+            <MotionWorld variant="hero" />
           </div>
           <div className="hm-hero-copy">
             <p className="hm-eyebrow">
@@ -214,7 +198,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
         >
           <Index number="01">{t('story.eyebrow')}</Index>
           <div className="hm-film">
-            <MotionWorld variant="film" paused={!motion} />
+            <MotionWorld variant="film" />
             <div className="hm-film-top">
               <span className="hm-film-status">
                 <i />
@@ -235,23 +219,10 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
                 </li>
               ))}
             </ol>
-            <button
-              className="hm-motion-button"
-              onClick={() => setMotion(!motion)}
-              aria-label={t(motion ? 'pause' : 'play')}
-              aria-pressed={!motion}
-            >
-              {motion ? (
-                <Pause size={15} aria-hidden="true" />
-              ) : (
-                <Play size={15} aria-hidden="true" />
-              )}
-              <span>{t(motion ? 'pause' : 'play')}</span>
-            </button>
           </div>
         </section>
         <section id="why-reven" className="hm-dark hm-why" aria-labelledby="why-heading">
-          <AmbientMotion variant="merge" paused={!motion} />
+          <AmbientMotion variant="merge" />
           <div className="hm-container">
             <div className="hm-section-heading">
               <div>
@@ -286,7 +257,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             </div>
             <div className="hm-explorer" data-area={area}>
               <div className="hm-explorer-scene">
-                <MotionWorld variant="platform" paused={!motion} focus={areas.indexOf(area)} />
+                <MotionWorld variant="platform" focus={areas.indexOf(area)} />
                 <div className="hm-scene-markers" aria-hidden="true">
                   {areas.map((key, index) => (
                     <span
@@ -354,7 +325,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           </div>
         </section>
         <section className="hm-dark hm-system" aria-labelledby="system-heading">
-          <AmbientMotion variant="ribbons" paused={!motion} />
+          <AmbientMotion variant="ribbons" />
           <div className="hm-container">
             <div className="hm-section-heading">
               <div>
@@ -384,7 +355,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           </div>
         </section>
         <section id="teams" className="hm-container hm-teams" aria-labelledby="teams-heading">
-          <AmbientMotion variant="contours" paused={!motion} />
+          <AmbientMotion variant="contours" />
           <div className="hm-section-heading">
             <div>
               <Index number="05">{t('teams.eyebrow')}</Index>
@@ -442,7 +413,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           ))}
         </div>
         <section className="hm-cta" aria-labelledby="cta-heading">
-          <AmbientMotion variant="rings" paused={!motion} />
+          <AmbientMotion variant="rings" />
           <div className="hm-container">
             <Index number="06">{t('cta.eyebrow')}</Index>
             <h2 id="cta-heading">

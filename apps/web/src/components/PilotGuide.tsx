@@ -2,7 +2,6 @@ import { getTranslations } from 'next-intl/server';
 import { ArrowUpRight, Handshake, Rocket, CalendarClock, ShieldCheck } from 'lucide-react';
 import { Link } from '@/src/i18n/navigation';
 import type { MembershipRole } from '@/src/lib/tenant/types';
-import { MotionControl } from './WorkspaceMotion';
 
 export async function PilotGuide({ role }: { role: MembershipRole }) {
   const t = await getTranslations('pilot');
@@ -45,7 +44,6 @@ export async function PilotGuide({ role }: { role: MembershipRole }) {
           <h2 id="workflow-heading">{t('guideTitle')}</h2>
           <p>{v('workflowDescription')}</p>
         </div>
-        <MotionControl compact />
       </div>
       <ol className="rv-workflow-steps">
         {steps.map(({ key, href, icon: Icon }, index) => (

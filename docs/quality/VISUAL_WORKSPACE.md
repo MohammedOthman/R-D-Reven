@@ -39,16 +39,15 @@ the workflow shows how its steps connect; it does not represent live activity.
 There are no scroll reveals, hidden-until-visible content, animated counts,
 automatically changing tabs, canvas effects or new animation dependencies.
 
-The top-bar motion control and the workflow's pause control share one setting.
-The `reven_motion` cookie persists it across navigation and refresh. Device
-reduced-motion preference takes priority, including changes during a session.
-Phone workflow connectors remain still. Portal dialogs follow the same setting.
+The workspace has no in-product motion control. The device reduced-motion
+preference removes animations and transitions, including changes during a
+session and portal dialogs. Phone workflow connectors remain still.
 
 ## Validation
 
 - 329 tests pass: API 238, web 82, shared UI 9. New coverage includes real
   health/stage populations, empty data, stage filtering, allowed role actions,
-  source failures, persisted pause, changing device motion preferences, and
+  source failures, and
   navigation on seven workspaces and their nested routes.
 - Lint, type checks and the production web build pass. No dependency,
   database migration or deployment environment change is required.

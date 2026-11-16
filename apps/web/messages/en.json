@@ -966,12 +966,7 @@
     "workflowEyebrow": "From partnership to proof",
     "workflowDescription": "Four connected steps. Open any step to try the workflow.",
     "workflowHint": "Use Executive for decision approvals and Reviewer for outcome verification.",
-    "yourNextStep": "Your next step",
-    "pauseMotion": "Pause motion",
-    "resumeMotion": "Resume motion",
-    "motionReduced": "Motion reduced by your device setting",
-    "motionOn": "Motion on",
-    "motionOff": "Motion off"
+    "yourNextStep": "Your next step"
   },
   "home": {
     "pageTitle": "Reven · The Partner Revenue Operating System",
@@ -1004,8 +999,6 @@
     "getStarted": "Create your workspace",
     "explorePilot": "Try the pilot",
     "scroll": "_Scroll to learn more",
-    "pause": "Pause motion",
-    "play": "Resume motion",
     "story": {
       "eyebrow": "Keep the work connected",
       "label": "One partnership. From plan to proof.",
