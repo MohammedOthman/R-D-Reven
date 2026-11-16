@@ -43,7 +43,7 @@ Place captions and controls in HTML rather than asking an image model to render 
 
 For rendered video production, use a locked camera and a seamless 8–12 second loop. Animate signals along fixed paths at a measured pace and pulse the central ring gently. Keep the scene architecture stationary; no camera shake, dolly zoom, or abrupt cuts. Render a still poster from the same camera and lighting. Offer a visible pause and serve the poster to reduced-motion visitors. Do not use a moving image as the only source of product information.
 
-The implementation now embeds two finished, original architectural images: a dark cinematic city and a light wireframe companion, delivered as local WebP assets. A gentle transform animation gives the dark scene motion; capability tabs update both the product explanation and highlighted labels over the light scene. The pause control and reduced-motion preference stop decorative animation. No video download, WebGL dependency, external media host, or live portfolio data is required. Team illustrations show labelled example workflows rather than performance statistics.
+The current implementation uses a real-time Three.js architectural network in the hero, dark panel, and platform explorer. Signals move independently, the hub rotates and floats, expanding rings and a shader scan animate the ground, and pointer movement shifts the camera. GSAP choreographs text and sections; Lenis is the single smooth-scroll engine. The original WebP artwork is retained only as a static fallback. See [MOTION_GRAPHICS.md](MOTION_GRAPHICS.md) for the applied MengTo skill workflow, motion responsibility, accessibility, and resource controls. Team illustrations show example workflows rather than performance statistics.
 
 ## Fidelity and acceptance
 
@@ -63,7 +63,7 @@ The portfolio charts and working application remain data-backed. This change int
 
 ## Applied artwork and copy
 
-The public page uses `apps/web/public/brand/home/partnership-city-dark.webp` (1672 × 941, about 260 KiB) and `partnership-city-light.webp` (1672 × 941, about 340 KiB). Both are original generated artwork, optimized to WebP and committed with the page. The dark city supplies a cinematic metaphor for connected companies; the light companion makes the four capability labels visible in an architectural scene. Neither image implies an actual deployment or customer relationship.
+The static fallback uses `apps/web/public/brand/home/partnership-city-dark.webp` (1672 × 941, about 260 KiB) and `partnership-city-light.webp` (1672 × 941, about 340 KiB). Both are original generated artwork, optimized to WebP and committed with the page. The dark city supplies a cinematic metaphor for connected companies; the light companion makes the four capability labels visible in an architectural scene. Neither image implies an actual deployment or customer relationship.
 
 The hero now states a concrete visitor benefit: “See what your partnerships deliver.” Its explanation names the tasks: manage partners, assign joint work, and verify results. Subsequent sections answer: what gets easier, how the workflow connects, who uses it, and how to start. The existing category, positioning line, and tagline remain verbatim. English and Arabic carry the same claims and next steps.
 

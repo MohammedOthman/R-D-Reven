@@ -1131,12 +1131,6 @@ html[lang='ar'] .hm-film-copy h2 {
   margin: 13px 0 0;
   max-width: 420px;
 }
-.hm-film-art {
-  z-index: -2;
-  object-fit: cover;
-  object-position: center;
-  animation: hm-film-drift 18s ease-in-out infinite alternate;
-}
 .hm-film-journey {
   list-style: none;
   display: flex;
@@ -1176,12 +1170,6 @@ html[lang='ar'] .hm-film-copy h2 {
   width: calc(100% + 50px);
   inset-inline-start: -25px;
   inset-block-start: 0;
-}
-.hm-blueprint-art {
-  display: block;
-  width: 100%;
-  height: auto;
-  mix-blend-mode: multiply;
 }
 .hm-explorer-content {
   padding-top: 50px;
@@ -1333,16 +1321,10 @@ html[lang='ar'] .hm-film-copy h2 {
   letter-spacing: 0.04em;
   color: #62738c;
 }
-html[lang='ar'] .hm-film-art {
-  scale: -1 1;
-}
 html[lang='ar'] .hm-film:after {
   background:
     linear-gradient(-90deg, #0f1629e6, transparent 80%),
     linear-gradient(0deg, #0f1629, transparent 70%);
-}
-html[lang='ar'] .hm-blueprint-art {
-  transform: scaleX(-1);
 }
 html[lang='ar'] .hm-scene-marker,
 html[lang='ar'] .hm-team-art figcaption {
@@ -1353,14 +1335,6 @@ html[lang='ar'] .hm-role-card > p {
 }
 html[lang='ar'] .hm-film-journey svg {
   transform: scaleX(-1);
-}
-@keyframes hm-film-drift {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.035) translateX(-0.6%);
-  }
 }
 @media (max-width: 1100px) {
   .hm-film-journey {
@@ -1398,9 +1372,6 @@ html[lang='ar'] .hm-film-journey svg {
   .hm-scroll {
     display: none;
   }
-  .hm-film-art {
-    object-position: 65% center;
-  }
   .hm-film:after {
     background: linear-gradient(0deg, #0f1629 5%, #0f1629dd 25%, #0f162930 75%);
   }
@@ -1426,11 +1397,6 @@ html[lang='ar'] .hm-film-journey svg {
     width: 100%;
     inset-inline-start: 0;
     margin-block: 0;
-  }
-  .hm-blueprint-art {
-    width: 132%;
-    max-width: none;
-    margin-inline-start: -5%;
   }
   .hm-scene-caption {
     bottom: 13px;
@@ -1489,13 +1455,330 @@ html[lang='ar'] .hm-film-journey svg {
     width: 76%;
     inset-inline-start: 12%;
   }
-  .hm-blueprint-art {
-    width: 142%;
-    margin-inline-start: -10%;
+}
+
+/* Real-time motion scene: the first viewport is composed around the live network. */
+.hm-word {
+  display: inline-block;
+  white-space: pre;
+}
+.hm-page--motion .hm-hero {
+  position: relative;
+  min-height: 755px;
+  padding-block: 58px 82px;
+}
+.hm-page--motion .hm-hero-copy {
+  position: relative;
+  z-index: 3;
+  max-width: 660px;
+}
+.hm-page--motion .hm-hero h1 {
+  font-size: clamp(58px, 6vw, 86px);
+  line-height: 1.08;
+}
+.hm-page--motion .hm-hero h1 > .hm-soft {
+  color: #2c5bff;
+}
+.hm-page--motion .hm-hero-lead {
+  max-width: 580px;
+  font-size: 17px;
+  line-height: 1.8;
+}
+.hm-page--motion .hm-eyebrow {
+  margin-bottom: 30px;
+  font-size: 10px;
+}
+.hm-page--motion .hm-scroll {
+  display: none;
+}
+.hm-hero-scene {
+  position: absolute;
+  inset-block: -20px 0;
+  inset-inline-start: 430px;
+  inset-inline-end: -240px;
+  z-index: 0;
+  mask-image: linear-gradient(90deg, transparent, black 18%, black 85%, transparent);
+}
+.hm-hero-route {
+  position: absolute;
+  z-index: 2;
+  inset-inline-end: 0;
+  bottom: 28px;
+  display: flex;
+  gap: 28px;
+  font-family: var(--font-label);
+  font-size: 9px;
+  color: #536da1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.hm-hero-route > span {
+  border-top: 1px solid #abc1f1;
+  padding-top: 12px;
+}
+.hm-top-motion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #53658a;
+  background: transparent;
+  border: 0;
+  min-height: 36px;
+  padding: 5px;
+}
+.hm-top-motion > span {
+  font-size: 10px;
+}
+.hm-page--motion .hm-nav-actions {
+  gap: 22px;
+}
+.hm-motion-world {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(ellipse at 50% 60%, #e3edff75, transparent 66%);
+}
+.hm-motion-world canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.hm-motion-world .hm-world-poster {
+  object-fit: cover;
+  opacity: 1;
+  transition: opacity 0.6s;
+}
+.hm-motion-world[data-scene-state='ready'] canvas {
+  opacity: 1;
+}
+.hm-motion-world[data-scene-state='ready'] .hm-world-poster {
+  opacity: 0;
+}
+.hm-motion-world--film {
+  background: radial-gradient(ellipse at 65% 40%, #192c50, #0f1629 75%);
+}
+.hm-film > .hm-motion-world {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hm-page--motion .hm-film:after {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, #0f1629ed, transparent 78%),
+    linear-gradient(0deg, #0f1629, transparent 65%);
+}
+.hm-page--motion .hm-film-copy,
+.hm-page--motion .hm-film-top,
+.hm-page--motion .hm-film-journey,
+.hm-page--motion .hm-motion-button {
+  z-index: 2;
+}
+.hm-page--motion .hm-film-copy {
+  max-width: 470px;
+}
+.hm-page--motion .hm-explorer {
+  min-height: 650px;
+}
+.hm-page--motion .hm-explorer-scene {
+  inset-block-start: 0;
+  inset-inline-start: -60px;
+  width: 76%;
+  height: 640px;
+}
+.hm-page--motion .hm-explorer-content {
+  width: 34%;
+  padding-top: 65px;
+  z-index: 2;
+}
+.hm-page--motion .hm-scene-caption {
+  inset-inline-start: 65px;
+  bottom: 30px;
+}
+.hm-page--motion .hm-scene-marker--portfolio {
+  inset-inline-start: 15%;
+  top: 27%;
+}
+.hm-page--motion .hm-scene-marker--execution {
+  inset-inline-start: 62%;
+  top: 64%;
+}
+.hm-page--motion .hm-scene-marker--governance {
+  inset-inline-start: 13%;
+  top: 68%;
+}
+.hm-page--motion .hm-scene-marker--outcomes {
+  inset-inline-start: 40%;
+  top: 43%;
+}
+html[lang='ar'] .hm-page--motion .hm-hero h1 {
+  font-size: clamp(55px, 5.8vw, 80px);
+  line-height: 1.28;
+}
+html[lang='ar'] .hm-hero-scene,
+html[lang='ar'] .hm-film > .hm-motion-world,
+html[lang='ar'] .hm-motion-world--platform {
+  transform: scaleX(-1);
+}
+html[lang='ar'] .hm-page--motion .hm-film:after {
+  background:
+    linear-gradient(-90deg, #0f1629ed, transparent 78%),
+    linear-gradient(0deg, #0f1629, transparent 65%);
+}
+@media (max-width: 1100px) {
+  .hm-page--motion .hm-hero-copy {
+    max-width: 590px;
+  }
+  .hm-hero-scene {
+    inset-inline-start: 330px;
+    inset-inline-end: -220px;
+  }
+  .hm-top-motion > span {
+    display: none;
+  }
+  .hm-page--motion .hm-explorer-content {
+    width: 38%;
+  }
+}
+@media (max-width: 800px) {
+  .hm-page--motion .hm-hero {
+    min-height: 0;
+    padding-block: 40px 360px;
+  }
+  .hm-page--motion .hm-hero-copy {
+    max-width: 100%;
+  }
+  .hm-page--motion .hm-hero h1 {
+    font-size: clamp(42px, 8vw, 62px);
+  }
+  .hm-page--motion .hm-hero-lead {
+    font-size: 15px;
+    max-width: 580px;
+  }
+  .hm-page--motion .hm-eyebrow {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
+  .hm-hero-scene {
+    inset-inline: -65px;
+    inset-block-start: auto;
+    bottom: 10px;
+    height: 370px;
+    mask-image: linear-gradient(0deg, transparent, black 12%, black 90%, transparent);
+  }
+  .hm-hero-route {
+    inset-inline: 0;
+    bottom: 20px;
+    gap: 15px;
+    justify-content: center;
+    font-size: 7px;
+  }
+  .hm-page--motion .hm-nav-actions {
+    gap: 14px;
+  }
+  .hm-page--motion .hm-film:after,
+  html[lang='ar'] .hm-page--motion .hm-film:after {
+    background: linear-gradient(0deg, #0f1629 4%, #0f1629d9 30%, transparent 85%);
+  }
+  .hm-page--motion .hm-film-copy {
+    max-width: 85%;
+  }
+  .hm-page--motion .hm-explorer {
+    min-height: 0;
+  }
+  .hm-page--motion .hm-explorer-scene {
+    position: relative;
+    width: calc(100% + 40px);
+    height: 390px;
+    inset-inline-start: -20px;
+    margin: 0;
+  }
+  .hm-page--motion .hm-explorer-content {
+    width: 100%;
+    padding-top: 25px;
+  }
+  .hm-page--motion .hm-scene-caption {
+    inset-inline-start: 20px;
+    bottom: 0;
+    font-size: 7px;
+  }
+  .hm-page--motion .hm-scene-marker[data-selected='true'] {
+    inset-inline-start: 25%;
+    bottom: 48px;
+    top: auto;
+  }
+  html[lang='ar'] .hm-page--motion .hm-hero h1 {
+    font-size: clamp(43px, 8vw, 60px);
+  }
+}
+@media (max-width: 420px) {
+  .hm-page--motion .hm-hero h1 {
+    font-size: 42px;
+  }
+  .hm-page--motion .hm-hero {
+    padding-bottom: 330px;
+  }
+  .hm-hero-scene {
+    height: 340px;
+  }
+  .hm-hero-route {
+    font-size: 6px;
+    gap: 12px;
+  }
+  .hm-page--motion .hm-explorer-scene {
+    height: 330px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hm-film-art {
-    animation: none !important;
+  .hm-motion-world canvas {
+    display: none;
+  }
+  .hm-motion-world[data-scene-state='ready'] .hm-world-poster {
+    opacity: 1;
+  }
+}
+.hm-page--motion .hm-hero-scene {
+  mask-image: linear-gradient(90deg, transparent, black 32%, black 88%, transparent);
+}
+.hm-page--motion .hm-film > .hm-motion-world {
+  inset-inline-start: 12%;
+  width: 94%;
+}
+.hm-page--motion .hm-film:after {
+  background:
+    linear-gradient(90deg, #0f1629 0%, #0f1629db 22%, transparent 62%),
+    linear-gradient(0deg, #0f1629, transparent 48%);
+}
+.hm-page--motion .hm-explorer-scene {
+  width: 70%;
+}
+.hm-top-motion {
+  min-width: 36px;
+}
+html[lang='ar'] .hm-page--motion .hm-film:after {
+  background:
+    linear-gradient(-90deg, #0f1629 0%, #0f1629db 22%, transparent 62%),
+    linear-gradient(0deg, #0f1629, transparent 48%);
+}
+@media (max-width: 800px) {
+  .hm-page--motion .hm-hero-scene {
+    mask-image: linear-gradient(0deg, transparent, black 12%, black 90%, transparent);
+  }
+  .hm-page--motion .hm-film > .hm-motion-world {
+    inset-inline-start: -15%;
+    width: 130%;
+  }
+  .hm-page--motion .hm-film:after,
+  html[lang='ar'] .hm-page--motion .hm-film:after {
+    background: linear-gradient(0deg, #0f1629 3%, #0f1629bb 23%, transparent 76%);
+  }
+  .hm-page--motion .hm-explorer-scene {
+    width: calc(100% + 40px);
   }
 }
