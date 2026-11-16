@@ -24,7 +24,7 @@ export default async function PilotUnavailablePage({
           <p role="status" className="text-muted-body text-sm leading-relaxed">
             {t('unavailableDescription')}
           </p>
-          <Link prefetch={false} href="/" className={buttonVariants({ variant: 'primary' })}>
+          <Link prefetch={false} href="/workspace" className={buttonVariants({ variant: 'primary' })}>
             {t('retryAction')}
           </Link>
         </CardContent>

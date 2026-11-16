@@ -15,7 +15,7 @@ vi.mock('@/src/lib/auth/silent-refresh', async (original) => ({
   startPilotSession: pilot,
 }));
 
-async function run(path = '/en', cookie?: string) {
+async function run(path = '/en/workspace', cookie?: string) {
   const { default: proxy } = await import('../proxy');
   return proxy(
     new NextRequest(`https://pilot.example${path}`, { headers: cookie ? { cookie } : {} }),
@@ -40,6 +40,16 @@ describe('pilot entry and recovery', () => {
   });
   afterEach(() => vi.unstubAllEnvs());
 
+  it.each(['/', '/en', '/ar'])(
+    'keeps %s public without minting or refreshing sessions',
+    async (path) => {
+      pilot.mockResolvedValue(null);
+      const response = await run(path, 'refresh_token=expired');
+      expect(pilot).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
+      expect(response.headers.get('location')).toBeNull();
+    },
+  );
   it('opens a workspace for a visitor with no cookies, including the first render', async () => {
     const response = await run();
     expect(pilot).toHaveBeenCalledOnce();
@@ -61,7 +71,7 @@ describe('pilot entry and recovery', () => {
     expect(pilot).toHaveBeenCalledWith('REVIEWER');
   });
   it('ignores an invalid saved persona instead of trapping the visitor on recovery', async () => {
-    await run('/en', 'pilot_role=ADMIN');
+    await run('/en/workspace', 'pilot_role=ADMIN');
     expect(pilot).toHaveBeenCalledWith(undefined);
   });
   it.each([
@@ -74,14 +84,14 @@ describe('pilot entry and recovery', () => {
     'administration',
   ])('keeps %s out of the pilot journey, even with stale access cookies', async (page) => {
     const response = await run(`/ar/${page}`, 'access_token=invalid; refresh_token=old');
-    expect(response.headers.get('location')).toBe('https://pilot.example/ar');
+    expect(response.headers.get('location')).toBe('https://pilot.example/ar/workspace');
     expect(pilot).toHaveBeenCalledOnce();
     expect(refresh).not.toHaveBeenCalled();
     expect(response.headers.getSetCookie()).toEqual(session.setCookieHeaders);
   });
   it('shows a retry page when the API is unavailable instead of a login form', async () => {
     pilot.mockResolvedValue(null);
-    const response = await run('/ar');
+    const response = await run('/ar/workspace');
     expect(response.headers.get('location')).toBe('https://pilot.example/ar/pilot-unavailable');
   });
   it('does not redirect the retry page back to itself', async () => {

@@ -32,6 +32,12 @@ export default async function proxy(request: NextRequest) {
   const segments = request.nextUrl.pathname.split('/').filter(Boolean);
   const locale = routing.locales.find((value) => value === segments[0]) ?? routing.defaultLocale;
   const page = segments.at(-1);
+  // The public home must remain available even when the pilot API is down.
+  // Entering /workspace starts the pilot session through the existing flow.
+  const isPublicHome =
+    segments.length === 0 ||
+    (segments.length === 1 && routing.locales.some((value) => value === segments[0]));
+  if (isPublicHome) return intlMiddleware(request);
   // Recovery itself must not bootstrap a session, otherwise an unavailable
   // API would cause a redirect loop instead of showing the retry action.
   if (PILOT_AUTO_LOGIN && page === 'pilot-unavailable') return intlMiddleware(request);
@@ -74,7 +80,7 @@ export default async function proxy(request: NextRequest) {
   });
 
   const response = pilotAccountPage
-    ? NextResponse.redirect(new URL(`/${locale}`, request.url))
+    ? NextResponse.redirect(new URL(`/${locale}/workspace`, request.url))
     : intlMiddleware(requestWithFreshCookie);
   for (const cookie of refreshed.setCookieHeaders) {
     response.headers.append('set-cookie', cookie);

@@ -78,7 +78,7 @@ export function AppShell({
       id: 'command-center',
       label: t('nav.commandCenter'),
       icon: <LayoutGrid className="size-[18px]" />,
-      href: '/',
+      href: '/workspace',
     },
     ...(isInternal
       ? [

@@ -19,7 +19,7 @@ export function CreateOrganizationForm() {
     setError(null);
     try {
       await createTenant({ name });
-      router.replace('/');
+      router.replace('/workspace');
       router.refresh();
     } catch {
       setError(t('genericError'));

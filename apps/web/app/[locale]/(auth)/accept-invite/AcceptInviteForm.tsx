@@ -55,7 +55,7 @@ export function AcceptInviteForm({
     setError(null);
     try {
       await acceptInvite({ token, name, password });
-      router.replace('/');
+      router.replace('/workspace');
       router.refresh();
     } catch {
       setError(t('genericError'));

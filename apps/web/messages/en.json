@@ -972,5 +972,146 @@
     "motionReduced": "Motion reduced by your device setting",
     "motionOn": "Motion on",
     "motionOff": "Motion off"
+  },
+  "home": {
+    "pageTitle": "Reven · The Partner Revenue Operating System",
+    "homeLabel": "Reven home",
+    "skip": "Skip to content",
+    "navigation": "Main navigation",
+    "footerNavigation": "Footer navigation",
+    "openMenu": "Open navigation",
+    "closeMenu": "Close navigation",
+    "category": "The Partner Revenue Operating System",
+    "positioning": "The operating system for revenue shared between companies.",
+    "headline": {
+      "first": "Partnerships,",
+      "second": "working toward",
+      "third": "shared revenue."
+    },
+    "heroDescription": "Bring agreements, execution, and verified outcomes into one governed workspace.",
+    "proof": {
+      "ownership": "Clear ownership",
+      "evidence": "Evidence-backed outcomes",
+      "bilingual": "English & Arabic"
+    },
+    "nav": {
+      "platform": "The platform",
+      "why": "Why Reven",
+      "teams": "Built for your team",
+      "workspace": "Open workspace",
+      "pilot": "Explore the pilot"
+    },
+    "getStarted": "Get started",
+    "explorePilot": "Explore the pilot",
+    "scroll": "_Scroll to learn more",
+    "pause": "Pause motion",
+    "play": "Resume motion",
+    "story": {
+      "eyebrow": "Why it matters",
+      "label": "Connected partnerships. Shared direction.",
+      "title": "Every partnership. One shared direction.",
+      "description": "From the first agreement to the verified outcome. Keep the people, work, and evidence connected."
+    },
+    "why": {
+      "eyebrow": "Why Reven",
+      "title": "Turning partnership potential into accountable progress.",
+      "description": "Partnerships span companies. The work should stay connected, with a clear owner, a shared plan, and evidence of what happened.",
+      "clarity": {
+        "label": "Clarity",
+        "title": "One relationship. The whole picture.",
+        "description": "Keep each partner’s objectives, agreements, initiatives, and review cadence together. Understand the relationship beyond a contact record.",
+        "foot": "A shared source of context"
+      },
+      "accountability": {
+        "label": "Accountability",
+        "title": "Every action has an owner.",
+        "description": "Make joint initiatives actionable with milestones, assigned work, and visible blockers. Bring decisions back into the work they affect.",
+        "foot": "From intention to execution"
+      },
+      "confidence": {
+        "label": "Confidence",
+        "title": "An outcome you can stand behind.",
+        "description": "Connect contributions to evidence and submit outcomes for independent verification. Keep a traceable history of material changes.",
+        "foot": "Evidence before confidence"
+      }
+    },
+    "platform": {
+      "eyebrow": "The platform",
+      "title": "See what becomes possible.",
+      "description": "One connected workspace for the people, commitments, and outcomes behind your partnerships.",
+      "tabLabel": "Explore platform capabilities",
+      "sceneCaption": "Illustration / A connected partnership ecosystem",
+      "explore": "Explore the workspace",
+      "portfolio": {
+        "label": "Partnership portfolio",
+        "title": "A clear view of every relationship.",
+        "description": "Follow each partnership through its lifecycle. Keep ownership, health, objectives, and the next review in view."
+      },
+      "execution": {
+        "label": "Joint execution",
+        "title": "Make the shared plan move.",
+        "description": "Turn partnership objectives into initiatives, milestones, and assigned actions. Surface blockers before they become the next missed commitment."
+      },
+      "governance": {
+        "label": "Commercial governance",
+        "title": "Keep commitments in context.",
+        "description": "Manage agreement versions and commercial rules alongside the partnership. Retain approved versions and a history of decisions."
+      },
+      "outcomes": {
+        "label": "Evidence & outcomes",
+        "title": "Connect the result to the proof.",
+        "description": "Record contributions, attach supporting evidence, and route outcomes to an independent verifier. Give every result a traceable basis."
+      }
+    },
+    "system": {
+      "eyebrow": "How it comes together",
+      "title": "From agreement to verified outcome.",
+      "description": "A connected operating rhythm for partnership work. Each step carries its context forward into the next.",
+      "align": {
+        "title": "Align",
+        "description": "Establish the relationship, objectives, ownership, and commercial commitments."
+      },
+      "execute": {
+        "title": "Execute",
+        "description": "Move joint initiatives forward with milestones, actions, and visible blockers."
+      },
+      "review": {
+        "title": "Review",
+        "description": "Capture decisions, assign follow-up work, and set the next review."
+      },
+      "verify": {
+        "title": "Verify",
+        "description": "Link evidence to outcomes and request independent verification."
+      },
+      "note": "Human decisions. Role-based access. A traceable audit history."
+    },
+    "teams": {
+      "eyebrow": "Built for your team",
+      "title": "A shared view. A clear role.",
+      "description": "The right context for the people managing the relationship, directing the portfolio, and verifying the result.",
+      "alliances": {
+        "label": "Partnership teams",
+        "title": "Keep the work moving.",
+        "description": "Bring relationships, initiatives, reviews, and next actions into the same daily workspace."
+      },
+      "leadership": {
+        "label": "Executives",
+        "title": "See the portfolio clearly.",
+        "description": "Understand partnership health, pending decisions, and where attention is needed across the portfolio."
+      },
+      "reviewers": {
+        "label": "Reviewers & verifiers",
+        "title": "Follow the evidence.",
+        "description": "Review agreements and verify assigned outcomes with supporting evidence and an audit history."
+      }
+    },
+    "cta": {
+      "eyebrow": "Build with Reven",
+      "title": "Ready to give partnerships",
+      "highlight": "a shared direction?"
+    },
+    "tagline": "Turning partnerships from a cost center into a profit center.",
+    "footerNote": "Built for accountable partnerships.",
+    "backToTop": "Back to top"
   }
 }

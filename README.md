@@ -13,6 +13,12 @@ See [docs/PILOT.md](docs/PILOT.md) for the pilot workflow, shared roles, and
 scope. [docs/ROADMAP.md](docs/ROADMAP.md) records the implementation phases;
 the pilot does not represent completion of the full product roadmap.
 
+The public homepage is available at `/en` and `/ar`. Choose **Explore the pilot**
+to enter the pilot workspace; the authenticated Command Center is now at
+`/en/workspace` (or `/ar/workspace`). Art direction, reference measurements,
+and reusable production prompts are in
+[docs/design/REVEN_HOME_ART_DIRECTION.md](docs/design/REVEN_HOME_ART_DIRECTION.md).
+
 Read first if you're new here:
 
 - [docs/brand/BRAND_SYSTEM.md](docs/brand/BRAND_SYSTEM.md) — the visual identity this UI is built from
@@ -131,13 +137,13 @@ pnpm dev
 
 This starts both apps (via Turborepo):
 
-- Web: http://localhost:3000 — redirects to `/en`, then to `/en/sign-in`
-  since every app page is authenticated now. Create an account at
+- Web: http://localhost:3000 — redirects to the public homepage at `/en`.
+  **Open workspace** goes to `/en/workspace`, which requires authentication. Create an account at
   http://localhost:3000/en/sign-up (any email/password ≥ 12 characters — no
   email actually gets sent; a password-reset or invitation just logs the
   link to the API's console, see `docs/DECISIONS.md`). A brand-new account
   gets routed to "create your organization" once, right after sign-up,
-  becoming its owner. `/en` (every role but guest) is the Command Center —
+  becoming its owner. `/en/workspace` (every role but guest) is the Command Center —
   a KPI strip (active/at-risk partnerships, open initiatives, pending
   decisions, reviews due, outcomes awaiting verification), an exceptions
   feed pulling together everything currently at risk, blocked or rejected

@@ -22,7 +22,7 @@ export default async function OnboardingLayout({
 
   const { tenant } = await getCurrentTenant();
   if (tenant) {
-    return redirect({ href: '/', locale });
+    return redirect({ href: '/workspace', locale });
   }
 
   return <CenteredCardLayout>{children}</CenteredCardLayout>;

@@ -24,8 +24,8 @@ describe('activeNavIdFromPathname', () => {
     expect(activeNavIdFromPathname('/agreements-elsewhere')).toBe('command-center');
   });
 
-  it('falls back to the command center for the home route', () => {
-    expect(activeNavIdFromPathname('/')).toBe('command-center');
+  it('highlights the command center at its workspace route', () => {
+    expect(activeNavIdFromPathname('/workspace')).toBe('command-center');
   });
 
   it('falls back to the command center for unknown routes', () => {

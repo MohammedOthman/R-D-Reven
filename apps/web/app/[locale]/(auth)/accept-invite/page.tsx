@@ -35,7 +35,7 @@ export default async function AcceptInvitePage({
 
   const user = await getCurrentUser();
   if (user) {
-    redirect({ href: '/', locale });
+    redirect({ href: '/workspace', locale });
   }
 
   const preview = token ? await fetchPreview(token) : null;

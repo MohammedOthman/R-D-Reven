@@ -29,7 +29,7 @@ export function SignUpForm() {
     setErrors({});
     try {
       await signUp({ name, email, password });
-      router.replace('/');
+      router.replace('/workspace');
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
