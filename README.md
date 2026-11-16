@@ -13,7 +13,7 @@ See [docs/PILOT.md](docs/PILOT.md) for the pilot workflow, shared roles, and
 scope. [docs/ROADMAP.md](docs/ROADMAP.md) records the implementation phases;
 the pilot does not represent completion of the full product roadmap.
 
-The public homepage is available at `/en` and `/ar`. Choose **Explore the pilot**
+The public homepage is available at `/en` and `/ar`. Choose **Try the pilot**
 to enter the pilot workspace; the authenticated Command Center is now at
 `/en/workspace` (or `/ar/workspace`). Art direction, reference measurements,
 and reusable production prompts are in

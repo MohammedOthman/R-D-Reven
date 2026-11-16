@@ -7,9 +7,11 @@ import en from '../messages/en.json';
 import ar from '../messages/ar.json';
 
 vi.mock('next/image', () => ({
-  default: ({ priority: _priority, ...props }: ComponentProps<'img'> & { priority?: boolean }) => (
-    <img {...props} />
-  ),
+  default: ({
+    priority: _priority,
+    fill: _fill,
+    ...props
+  }: ComponentProps<'img'> & { priority?: boolean; fill?: boolean }) => <img {...props} />,
 }));
 vi.mock('@/src/i18n/navigation', () => ({
   Link: ({
@@ -37,7 +39,7 @@ describe('public home handoffs and controls', () => {
     mount();
     expect(
       screen
-        .getAllByRole('link', { name: 'Get started' })
+        .getAllByRole('link', { name: 'Create your workspace' })
         .every((link) => link.getAttribute('href') === '/sign-up'),
     ).toBe(true);
     expect(
@@ -51,27 +53,31 @@ describe('public home handoffs and controls', () => {
     mount({ pilotMode: true });
     expect(
       screen
-        .getAllByRole('link', { name: 'Explore the pilot' })
+        .getAllByRole('link', { name: 'Try the pilot' })
         .every((link) => link.getAttribute('href') === '/workspace'),
     ).toBe(true);
     expect(document.querySelector('a[href="/sign-up"]')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Create your workspace' })).toBeNull();
+    expect(
+      screen.getByText('Explore a shared demo workspace. No account needed.'),
+    ).toBeInTheDocument();
   });
   it('supports keyboard exploration with a linked, focusable tab panel', () => {
     mount();
-    const first = screen.getByRole('tab', { name: /Partnership portfolio/ });
+    const first = screen.getByRole('tab', { name: /Partnerships/ });
     first.focus();
     fireEvent.keyDown(first, { key: 'ArrowRight' });
-    const selected = screen.getByRole('tab', { name: /Joint execution/ });
+    const selected = screen.getByRole('tab', { name: /Joint work/ });
     expect(selected).toHaveFocus();
     expect(selected).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', selected.id);
     expect(
       within(screen.getByRole('tabpanel')).getByRole('heading', {
-        name: 'Make the shared plan move.',
+        name: 'Turn a plan into assigned work.',
       }),
     ).toBeInTheDocument();
     fireEvent.keyDown(selected, { key: 'End' });
-    expect(screen.getByRole('tab', { name: /Evidence & outcomes/ })).toHaveFocus();
+    expect(screen.getByRole('tab', { name: /Evidence & results/ })).toHaveFocus();
   });
   it('pauses and resumes all decorative scene motion', () => {
     const { container } = mount();
@@ -90,7 +96,7 @@ describe('public home handoffs and controls', () => {
     fireEvent.click(trigger);
     fireEvent.click(
       within(document.getElementById('home-mobile-nav')!).getByRole('link', {
-        name: 'The platform',
+        name: 'How it works',
       }),
     );
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
@@ -101,8 +107,8 @@ describe('public home handoffs and controls', () => {
   });
   it('renders Arabic content and switches back to the English homepage', () => {
     mount({ locale: 'ar' });
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('إيرادات مشتركة.');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('شراكاتك.');
     expect(screen.getByRole('link', { name: 'English' })).toHaveAttribute('href', '/en');
-    expect(screen.getByRole('tab', { name: /محفظة الشراكات/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /الشراكات/ })).toBeInTheDocument();
   });
 });

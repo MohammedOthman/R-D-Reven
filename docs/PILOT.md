@@ -1,9 +1,9 @@
 # Reven MVP pilot
 
-The public homepage is now the entry point. Choose **Explore the pilot** to open
+The public homepage is now the entry point. Choose **Try the pilot** to open
 the existing Command Center at `/en/workspace` or `/ar/workspace`.
 
-Open **https://reven-pilot-uinswy.cranl.net** and choose **Explore the pilot**.
+Open **https://reven-pilot-uinswy.cranl.net** and choose **Try the pilot**.
 There is no login, registration, invitation, or organization setup step.
 English and Arabic use the same saved workspace.
 

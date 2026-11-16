@@ -8,17 +8,20 @@ import {
   ArrowRight,
   ArrowUpRight,
   Check,
-  ChevronDown,
+  CircleCheck,
+  FileCheck2,
+  Flag,
+  Layers3,
   Menu,
   Pause,
   Play,
   X,
 } from 'lucide-react';
 import { Link } from '@/src/i18n/navigation';
-import { NetworkScene } from './NetworkScene';
 
 const areas = ['portfolio', 'execution', 'governance', 'outcomes'] as const;
 const teams = ['alliances', 'leadership', 'reviewers'] as const;
+const teamIcons = [Flag, Layers3, FileCheck2];
 function Arrow({ diagonal = false }: { diagonal?: boolean }) {
   return diagonal ? (
     <ArrowUpRight size={17} aria-hidden="true" />
@@ -53,15 +56,9 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             <Image src="/brand/reven-mark.svg" width={132} height={38} alt="Reven" priority />
           </Link>
           <nav className="hm-desktop-nav" aria-label={t('navigation')}>
-            <a href="#platform">
-              {t('nav.platform')} <ChevronDown size={12} aria-hidden="true" />
-            </a>
-            <a href="#why-reven">
-              {t('nav.why')} <ChevronDown size={12} aria-hidden="true" />
-            </a>
-            <a href="#teams">
-              {t('nav.teams')} <ChevronDown size={12} aria-hidden="true" />
-            </a>
+            <a href="#platform">{t('nav.platform')}</a>
+            <a href="#why-reven">{t('nav.why')}</a>
+            <a href="#teams">{t('nav.teams')}</a>
           </nav>
           <div className="hm-nav-actions">
             <Link
@@ -120,13 +117,13 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             {t('category')}
           </p>
           <h1 id="home-heading">
-            <span>{t('headline.first')}</span>
-            <span>{t('headline.second')}</span>
+            <span>{t('headline.first')} </span>
+            <span>{t('headline.second')} </span>
             <span className="hm-soft">{t('headline.third')}</span>
           </h1>
           <p className="hm-hero-lead">
-            {t('positioning')}
-            <br className="hm-desktop-break" /> {t('heroDescription')}
+            <strong>{t('positioning')}</strong>
+            <span>{t('heroDescription')}</span>
           </p>
           <ul className="hm-proof-points">
             <li>{t('proof.ownership')}</li>
@@ -134,9 +131,17 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             <li>{t('proof.bilingual')}</li>
           </ul>
           <div className="hm-hero-bottom">
-            <Link href={entry} prefetch={false} className="hm-button">
-              {t(pilotMode ? 'explorePilot' : 'getStarted')} <Arrow diagonal />
-            </Link>
+            <div className="hm-entry">
+              <div className="hm-entry-actions">
+                <Link href={entry} prefetch={false} className="hm-button">
+                  {t(pilotMode ? 'explorePilot' : 'getStarted')} <Arrow diagonal />
+                </Link>
+                <a href="#platform" className="hm-text-link">
+                  {t('secondaryCta')} <Arrow />
+                </a>
+              </div>
+              <p className="hm-entry-note">{t(pilotMode ? 'pilotNote' : 'entryNote')}</p>
+            </div>
             <a href="#why-it-matters" className="hm-scroll">
               <ArrowDown size={15} aria-hidden="true" /> {t('scroll')}
             </a>
@@ -149,7 +154,13 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
         >
           <Index number="01">{t('story.eyebrow')}</Index>
           <div className="hm-film">
-            <NetworkScene dark />
+            <Image
+              className="hm-film-art"
+              src="/brand/home/partnership-city-dark.webp"
+              alt=""
+              fill
+              sizes="(max-width: 800px) calc(100vw - 40px), (max-width: 1280px) calc(100vw - 80px), 1200px"
+            />
             <div className="hm-film-top">
               <span className="hm-film-status">
                 <i />
@@ -161,6 +172,15 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
               <h2 id="story-heading">{t('story.title')}</h2>
               <p>{t('story.description')}</p>
             </div>
+            <ol className="hm-film-journey">
+              {['agreement', 'work', 'result'].map((step, index) => (
+                <li key={step}>
+                  <span>0{index + 1}</span>
+                  {t(`story.nodes.${step}`)}
+                  {index < 2 && <Arrow />}
+                </li>
+              ))}
+            </ol>
             <button
               className="hm-motion-button"
               onClick={() => setMotion(!motion)}
@@ -209,9 +229,27 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
               <h2 id="platform-heading">{t('platform.title')}</h2>
               <p>{t('platform.description')}</p>
             </div>
-            <div className="hm-explorer">
+            <div className="hm-explorer" data-area={area}>
               <div className="hm-explorer-scene">
-                <NetworkScene />
+                <Image
+                  className="hm-blueprint-art"
+                  src="/brand/home/partnership-city-light.webp"
+                  alt=""
+                  width={1672}
+                  height={941}
+                  sizes="(max-width: 800px) 100vw, 1200px"
+                />
+                <div className="hm-scene-markers" aria-hidden="true">
+                  {areas.map((key, index) => (
+                    <span
+                      className={`hm-scene-marker hm-scene-marker--${key}`}
+                      data-selected={area === key}
+                      key={key}
+                    >
+                      <i />0{index + 1} {t(`platform.${key}.label`)}
+                    </span>
+                  ))}
+                </div>
                 <span className="hm-scene-caption">{t('platform.sceneCaption')}</span>
               </div>
               <div className="hm-explorer-content">
@@ -260,7 +298,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
                   <h3>{t(`platform.${area}.title`)}</h3>
                   <p>{t(`platform.${area}.description`)}</p>
                   <Link href={entry} prefetch={false} className="hm-text-link">
-                    {t('platform.explore')} <Arrow />
+                    {t(pilotMode ? 'platform.explore' : 'platform.create')} <Arrow />
                   </Link>
                 </div>
               </div>
@@ -307,17 +345,31 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           <div className="hm-team-grid">
             {teams.map((key, i) => (
               <article key={key} className="hm-team">
-                <div className={`hm-team-art hm-team-art--${i}`} aria-hidden="true">
-                  <div />
-                  <div />
-                  <div />
-                  <span>0{i + 1}</span>
-                </div>
+                <figure className={`hm-team-art hm-team-art--${i}`}>
+                  <div className="hm-role-card" aria-hidden="true">
+                    <div className="hm-role-card-top">
+                      {(() => {
+                        const Icon = teamIcons[i]!;
+                        return <Icon size={21} strokeWidth={1.5} />;
+                      })()}
+                      <span>0{i + 1}</span>
+                    </div>
+                    <strong>{t(`teams.${key}.artTitle`)}</strong>
+                    <p>{t(`teams.${key}.artDetail`)}</p>
+                    <div className="hm-role-lines">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                    <CircleCheck size={23} className="hm-role-check" strokeWidth={1.4} />
+                  </div>
+                  <figcaption>{t('teams.illustration')}</figcaption>
+                </figure>
                 <p className="hm-mini">{t(`teams.${key}.label`)}</p>
                 <h3>{t(`teams.${key}.title`)}</h3>
                 <p>{t(`teams.${key}.description`)}</p>
                 <Link href={entry} prefetch={false} className="hm-text-link">
-                  {t('getStarted')} <Arrow />
+                  {t(pilotMode ? 'explorePilot' : 'getStarted')} <Arrow />
                 </Link>
               </article>
             ))}
@@ -327,8 +379,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           <div className="hm-container">
             <Index number="06">{t('cta.eyebrow')}</Index>
             <h2 id="cta-heading">
-              {t('cta.title')}
-              <span>{t('cta.highlight')}</span>
+              {t('cta.title')} <span>{t('cta.highlight')}</span>
             </h2>
             <div className="hm-cta-bottom">
               <p>{t('tagline')}</p>
