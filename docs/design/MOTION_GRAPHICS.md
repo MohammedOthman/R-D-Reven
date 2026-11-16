@@ -20,16 +20,22 @@ Three.js renders the moving network. GSAP owns heading/section choreography. Len
 
 Generated city images from the previous revision remain as complete static posters for no JavaScript, reduced motion, or WebGL failure. A still image is never described as the animated scene. The new scene uses original procedural 3D geometry and interface/data graphics; no reference assets or scene code are copied.
 
-## Ambient background layers
+## One visualization per section
 
-The four sections without a WebGL scene carry a Canvas 2D layer (`AmbientMotion` and `create-ambient-field.ts`) drawn in the same blue palette:
+| Section           | Visualization                                                                 | Idea it carries                                 |
+| ----------------- | ----------------------------------------------------------------------------- | ----------------------------------------------- |
+| Hero              | Three.js city with signals travelling to a hub                                | Companies connected through one operating layer |
+| Story panel       | The same city in a dark, cinematic grade                                      | Agreement, joint work, verified result          |
+| Why Reven         | Liquid merge: two masses fuse and part on a 20 second cycle                   | Separate companies working as one body          |
+| Platform explorer | The city with the selected capability's route emphasized                      | Four connected parts of one workspace           |
+| Operating rhythm  | Revenue ribbons: three streams join, travel together, leave as unequal shares | Revenue shared between companies                |
+| Teams             | Contour lines that shift and ring the pointer                                 | A shared map everyone reads                     |
+| Before the CTA    | Kinetic type: the journey in two rows moving in opposite directions           | A change of tempo before the ask                |
+| Final CTA         | The hub from above, with satellites on three orbits                           | One place the partnership turns around          |
 
-- Why Reven: drifting company nodes. A link appears when two nodes come within range, and a signal travels along it. Links to the pointer form within 230px.
-- Operating rhythm: wave lines with comets travelling in reading direction, reversed for Arabic. A CSS signal crosses the four workflow rails in order on a 6 second loop.
-- Teams: a dot matrix with two ripple origins and a pointer highlight.
-- Final CTA: the hub seen from above, with a rotating core, satellites on three orbits, and expanding rings.
+The four non-WebGL sections draw on Canvas 2D through `AmbientMotion` and `create-ambient-field.ts`. The merge evaluates a metaball field on a 6px grid, paints the fill from that grid and traces the outline with marching squares, which the contour map reuses. The ribbons mirror for Arabic. The kinetic band is CSS only; Arabic uses tinted fills because outline strokes cut through the joins of connected script. A CSS signal still crosses the four workflow rails in order on a 6 second loop.
 
-Each picture is a pure function of elapsed time, so pausing or reduced motion leaves a composed still frame. The layers share the WebGL gates: intersection, tab visibility, window focus, the pause control and `prefers-reduced-motion`, at 30 fps with pixel ratio capped at 1.5 (1.25 below 800px).
+Each canvas picture is a pure function of elapsed time, so pausing or reduced motion leaves a composed still frame. The layers share the WebGL gates: intersection, tab visibility, window focus, the pause control and `prefers-reduced-motion`, at 30 fps with pixel ratio capped at 1.5 (1.25 below 800px).
 
 ## Verification
 

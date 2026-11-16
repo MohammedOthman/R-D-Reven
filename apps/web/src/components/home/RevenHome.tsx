@@ -23,6 +23,7 @@ import { MotionWorld } from './MotionWorld';
 import { useHomeChoreography } from './useHomeChoreography';
 
 const areas = ['portfolio', 'execution', 'governance', 'outcomes'] as const;
+const journey = ['agreement', 'work', 'result'] as const;
 const teams = ['alliances', 'leadership', 'reviewers'] as const;
 const teamIcons = [Flag, Layers3, FileCheck2];
 function Arrow({ diagonal = false }: { diagonal?: boolean }) {
@@ -250,7 +251,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           </div>
         </section>
         <section id="why-reven" className="hm-dark hm-why" aria-labelledby="why-heading">
-          <AmbientMotion variant="network" paused={!motion} />
+          <AmbientMotion variant="merge" paused={!motion} />
           <div className="hm-container">
             <div className="hm-section-heading">
               <div>
@@ -353,7 +354,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           </div>
         </section>
         <section className="hm-dark hm-system" aria-labelledby="system-heading">
-          <AmbientMotion variant="flow" paused={!motion} />
+          <AmbientMotion variant="ribbons" paused={!motion} />
           <div className="hm-container">
             <div className="hm-section-heading">
               <div>
@@ -383,7 +384,7 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
           </div>
         </section>
         <section id="teams" className="hm-container hm-teams" aria-labelledby="teams-heading">
-          <AmbientMotion variant="grid" paused={!motion} />
+          <AmbientMotion variant="contours" paused={!motion} />
           <div className="hm-section-heading">
             <div>
               <Index number="05">{t('teams.eyebrow')}</Index>
@@ -424,6 +425,22 @@ export function RevenHome({ pilotMode }: { pilotMode: boolean }) {
             ))}
           </div>
         </section>
+        <div className="hm-kinetic" aria-hidden="true">
+          {[0, 1].map((row) => (
+            <div className="hm-kinetic-row" key={row}>
+              {[0, 1].map((half) => (
+                <div className="hm-kinetic-group" key={half}>
+                  {[0, 1, 2, 3, 4, 5].map((item) => (
+                    <span key={item} data-solid={(item + row) % 3 === 0}>
+                      {t(`story.nodes.${journey[(item + row) % 3]}`)}
+                      <i />
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
         <section className="hm-cta" aria-labelledby="cta-heading">
           <AmbientMotion variant="rings" paused={!motion} />
           <div className="hm-container">

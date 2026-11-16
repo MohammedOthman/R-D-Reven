@@ -94,11 +94,12 @@ describe('public home handoffs and controls', () => {
     const { container } = mount();
     const layers = [...container.querySelectorAll('.hm-ambient')];
     expect(layers.map((layer) => layer.className.split('--')[1])).toEqual([
-      'network',
-      'flow',
-      'grid',
+      'merge',
+      'ribbons',
+      'contours',
       'rings',
     ]);
+    expect(container.querySelector('.hm-kinetic')).toHaveAttribute('aria-hidden', 'true');
     expect(layers.every((layer) => layer.getAttribute('aria-hidden') === 'true')).toBe(true);
   });
   it('closes mobile navigation after selecting a section and on Escape', () => {
