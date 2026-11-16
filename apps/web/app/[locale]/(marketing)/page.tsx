@@ -3,6 +3,10 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { RevenHome } from '@/src/components/home/RevenHome';
 import '@/src/components/home/home.css';
 
+// One image serves both authenticated and pilot apps; read the runtime flag
+// on each request rather than baking the build environment into public CTAs.
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({
   params,
 }: {
