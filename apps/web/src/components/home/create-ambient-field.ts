@@ -1,4 +1,4 @@
-export type AmbientVariant = 'network' | 'flow' | 'rings' | 'grid';
+export type AmbientVariant = 'merge' | 'ribbons' | 'contours' | 'rings';
 
 type Field = { draw(t: number): void };
 type Pointer = { x: number; y: number; on: boolean };
@@ -35,170 +35,250 @@ function glow(
   ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
 }
 
-/** Companies as drifting nodes; links form within range and carry signals between them. */
-function network(ctx: CanvasRenderingContext2D, w: number, h: number, pointer: Pointer): Field {
-  const random = seeded(11);
-  const cols = clamp(Math.round(w / 150), 4, 11);
-  const rows = clamp(Math.round(h / 150), 3, 7);
-  const reach = clamp(w / 6, 130, 200);
-  const nodes = Array.from({ length: cols * rows }, (_, index) => ({
-    // One jittered node per cell keeps coverage even at every viewport size.
-    bx: (((index % cols) + 0.15 + random() * 0.7) / cols) * w,
-    by: ((Math.floor(index / cols) + 0.15 + random() * 0.7) / rows) * h,
-    ax: 16 + random() * 30,
-    ay: 16 + random() * 30,
-    sx: 0.1 + random() * 0.2,
-    sy: 0.1 + random() * 0.2,
-    px: random() * TAU,
-    py: random() * TAU,
-    hub: random() < 0.16,
-    x: 0,
-    y: 0,
+const smooth = (from: number, to: number, value: number) => {
+  const x = clamp((value - from) / (to - from), 0, 1);
+  return x * x * (3 - 2 * x);
+};
+
+/** Marching squares: adds the iso-line of `values` at `level` to the current path. */
+function trace(
+  ctx: CanvasRenderingContext2D,
+  values: Float32Array,
+  cols: number,
+  rows: number,
+  cell: number,
+  level: number,
+) {
+  const stride = cols + 1;
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const i = r * stride + c;
+      const tl = values[i]!,
+        tr = values[i + 1]!,
+        bl = values[i + stride]!,
+        br = values[i + stride + 1]!;
+      const code =
+        (tl > level ? 8 : 0) | (tr > level ? 4 : 0) | (br > level ? 2 : 0) | (bl > level ? 1 : 0);
+      if (code === 0 || code === 15) continue;
+      const x = c * cell,
+        y = r * cell;
+      const top = x + (cell * (level - tl)) / (tr - tl),
+        bottom = x + (cell * (level - bl)) / (br - bl),
+        left = y + (cell * (level - tl)) / (bl - tl),
+        right = y + (cell * (level - tr)) / (br - tr);
+      const line = (x0: number, y0: number, x1: number, y1: number) => {
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+      };
+      if (code === 1 || code === 14 || code === 10) line(x, left, bottom, y + cell);
+      if (code === 2 || code === 13 || code === 5) line(bottom, y + cell, x + cell, right);
+      if (code === 3 || code === 12) line(x, left, x + cell, right);
+      if (code === 4 || code === 11 || code === 10) line(top, y, x + cell, right);
+      if (code === 6 || code === 9) line(top, y, bottom, y + cell);
+      if (code === 7 || code === 8 || code === 5) line(x, left, top, y);
+    }
+}
+
+/** Two companies as liquid masses that drift together, fuse into one body and part again. */
+function merge(ctx: CanvasRenderingContext2D, w: number, h: number, pointer: Pointer): Field {
+  const cell = w < 720 ? 8 : 6;
+  const cols = Math.ceil(w / cell),
+    rows = Math.ceil(h / cell);
+  const stride = cols + 1;
+  const values = new Float32Array(stride * (rows + 1));
+  // The fill is computed once per grid point and upscaled; the traced outline keeps the edge crisp.
+  const buffer = document.createElement('canvas');
+  buffer.width = stride;
+  buffer.height = rows + 1;
+  const bufferContext = buffer.getContext('2d');
+  const image = bufferContext?.createImageData(stride, rows + 1);
+  const size = Math.min(w, h * 1.5);
+  const random = seeded(7);
+  const drops = Array.from({ length: 5 }, () => ({
+    orbit: 0.2 + random() * 0.26,
+    speed: (random() < 0.5 ? -1 : 1) * (0.1 + random() * 0.14),
+    phase: random() * TAU,
+    radius: size * (0.035 + random() * 0.03),
   }));
+  const blobs: { x: number; y: number; r2: number }[] = [];
   return {
     draw(t) {
-      glow(
-        ctx,
-        w * (0.22 + Math.sin(t * 0.07) * 0.08),
-        h * (0.35 + Math.cos(t * 0.05) * 0.15),
-        Math.max(w, h) * 0.42,
-        BLUE,
-        0.17,
+      // Separation eases between apart and overlapping on a 20 second cycle.
+      const together = smooth(-0.55, 0.55, Math.sin(t * 0.31));
+      const gap = w * (0.27 - together * 0.19);
+      const cx = w * 0.5 + Math.sin(t * 0.11) * w * 0.05,
+        cy = h * 0.5;
+      blobs.length = 0;
+      const big = size * 0.145;
+      blobs.push(
+        { x: cx - gap, y: cy + Math.sin(t * 0.4) * h * 0.1, r2: big * big },
+        { x: cx + gap, y: cy - Math.sin(t * 0.33 + 1) * h * 0.1, r2: big * big * 0.72 },
       );
-      glow(
-        ctx,
-        w * (0.8 + Math.cos(t * 0.06) * 0.07),
-        h * (0.7 + Math.sin(t * 0.08) * 0.14),
-        Math.max(w, h) * 0.36,
-        PERIWINKLE,
-        0.08,
-      );
-      for (const node of nodes) {
-        node.x = node.bx + Math.sin(t * node.sx + node.px) * node.ax;
-        node.y = node.by + Math.cos(t * node.sy + node.py) * node.ay;
+      for (const drop of drops) {
+        const angle = t * drop.speed + drop.phase;
+        blobs.push({
+          x: cx + Math.cos(angle) * w * drop.orbit,
+          y: cy + Math.sin(angle * 1.3) * h * 0.36,
+          r2: drop.radius * drop.radius,
+        });
+      }
+      if (pointer.on) blobs.push({ x: pointer.x, y: pointer.y, r2: size * size * 0.0036 });
+      for (let r = 0; r <= rows; r++)
+        for (let c = 0; c <= cols; c++) {
+          const x = c * cell,
+            y = r * cell;
+          let sum = 0;
+          for (const blob of blobs) {
+            const dx = x - blob.x,
+              dy = y - blob.y;
+            sum += blob.r2 / (dx * dx + dy * dy + 1);
+          }
+          values[r * stride + c] = sum;
+          if (image) {
+            const o = (r * stride + c) * 4;
+            // Brighter toward each core so the bodies read as volumes, not flat shapes.
+            const inside = smooth(0.92, 1.08, sum);
+            const core = Math.min(1, (sum - 1) / 2.2);
+            image.data[o] = 44 + core * 70;
+            image.data[o + 1] = 91 + core * 60;
+            image.data[o + 2] = 255;
+            image.data[o + 3] = inside * (44 + core * 84);
+          }
+        }
+      glow(ctx, cx, cy, Math.max(w, h) * 0.5, BLUE, 0.1 + together * 0.08);
+      if (image && bufferContext) {
+        bufferContext.putImageData(image, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(buffer, -cell / 2, -cell / 2, stride * cell, (rows + 1) * cell);
       }
       ctx.lineWidth = 1;
-      for (let i = 0; i < nodes.length; i++)
-        for (let j = i + 1; j < nodes.length; j++) {
-          const a = nodes[i]!,
-            b = nodes[j]!;
-          const dx = b.x - a.x,
-            dy = b.y - a.y;
-          const distance = Math.hypot(dx, dy);
-          if (distance > reach) continue;
-          const strength = Math.pow(1 - distance / reach, 1.4);
-          ctx.strokeStyle = `rgba(${PERIWINKLE},${strength * 0.46})`;
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.stroke();
-          if ((i * 7 + j * 13) % 4) continue;
-          // A signal exists only while its link does, so it fades as the companies drift apart.
-          const phase = fract(t * 0.2 + ((i * 31 + j * 17) % 100) / 100);
-          const from = (i + j) % 2 ? a : b,
-            to = from === a ? b : a;
-          const x = from.x + (to.x - from.x) * phase,
-            y = from.y + (to.y - from.y) * phase;
-          const tail = Math.min(18, distance * phase);
-          const ux = (to.x - from.x) / distance,
-            uy = (to.y - from.y) / distance;
-          const alpha = Math.min(1, strength * 3.2);
-          ctx.strokeStyle = `rgba(${ICE},${alpha * 0.55})`;
-          ctx.beginPath();
-          ctx.moveTo(x - ux * tail, y - uy * tail);
-          ctx.lineTo(x, y);
-          ctx.stroke();
-          ctx.fillStyle = `rgba(${ICE},${alpha})`;
-          ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
-        }
-      if (pointer.on) {
-        glow(ctx, pointer.x, pointer.y, 240, BLUE, 0.13);
-        for (const node of nodes) {
-          const distance = Math.hypot(node.x - pointer.x, node.y - pointer.y);
-          if (distance > 230) continue;
-          ctx.strokeStyle = `rgba(${ICE},${(1 - distance / 230) * 0.4})`;
-          ctx.beginPath();
-          ctx.moveTo(pointer.x, pointer.y);
-          ctx.lineTo(node.x, node.y);
-          ctx.stroke();
-        }
-      }
-      nodes.forEach((node, index) => {
-        if (node.hub) {
-          const pulse = fract(t * 0.3 + index * 0.37);
-          ctx.strokeStyle = `rgba(${PERIWINKLE},${(1 - pulse) * 0.5})`;
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, 5 + pulse * 17, 0, TAU);
-          ctx.stroke();
-          ctx.fillStyle = `rgba(${BLUE},1)`;
-          ctx.fillRect(node.x - 3.5, node.y - 3.5, 7, 7);
-          ctx.strokeStyle = `rgba(${ICE},0.85)`;
-          ctx.strokeRect(node.x - 3.5, node.y - 3.5, 7, 7);
-        } else {
-          ctx.fillStyle = `rgba(${PERIWINKLE},0.75)`;
-          ctx.fillRect(node.x - 1.5, node.y - 1.5, 3, 3);
-        }
-      });
+      ctx.strokeStyle = `rgba(${PERIWINKLE},0.16)`;
+      ctx.beginPath();
+      trace(ctx, values, cols, rows, cell, 0.55);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(${PERIWINKLE},0.3)`;
+      ctx.beginPath();
+      trace(ctx, values, cols, rows, cell, 0.75);
+      ctx.stroke();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgba(${ICE},0.85)`;
+      ctx.beginPath();
+      trace(ctx, values, cols, rows, cell, 1);
+      ctx.stroke();
     },
   };
 }
 
-/** Parallel work streams travelling in reading direction: agreement toward result. */
-function flow(ctx: CanvasRenderingContext2D, w: number, h: number, rtl: boolean): Field {
-  const random = seeded(23);
-  const count = clamp(Math.round(h / 40), 8, 18);
-  const lines = Array.from({ length: count }, (_, index) => ({
-    y: (h * (index + 0.5)) / count,
-    amp: 8 + random() * 24,
-    k: 0.0022 + random() * 0.0034,
-    speed: 0.14 + random() * 0.26,
-    phase: random() * TAU,
-    comets: Array.from({ length: random() < 0.45 ? 2 : 1 }, () => ({
-      velocity: 0.035 + random() * 0.055,
-      offset: random(),
-      length: 90 + random() * 120,
-    })),
-  }));
-  const fade = ctx.createLinearGradient(0, 0, w, 0);
-  fade.addColorStop(0, `rgba(${PERIWINKLE},0)`);
-  fade.addColorStop(0.18, `rgba(${PERIWINKLE},0.17)`);
-  fade.addColorStop(0.82, `rgba(${PERIWINKLE},0.17)`);
-  fade.addColorStop(1, `rgba(${PERIWINKLE},0)`);
-  const direction = rtl ? -1 : 1;
+/** Three partner streams join one governed flow, then leave as unequal shares. */
+function ribbons(ctx: CanvasRenderingContext2D, w: number, h: number, rtl: boolean): Field {
+  const unit = clamp(Math.min(h / 16, w / 26), 14, 34);
+  // Tall, narrow sections would turn the spread into steep diagonals, so it tightens with aspect.
+  const spread = clamp((w / h) * 0.9, 0.3, 1);
+  const bands = [
+    { start: 0.16, end: 0.2, share: 2.1, rgb: BLUE, alpha: 0.36 },
+    { start: 0.5, end: 0.56, share: 1.15, rgb: PERIWINKLE, alpha: 0.2 },
+    { start: 0.84, end: 0.86, share: 0.6, rgb: ICE, alpha: 0.13 },
+  ];
+  const step = 20;
+  const fade = (rgb: string, alpha: number) => {
+    const gradient = ctx.createLinearGradient(0, 0, w, 0);
+    gradient.addColorStop(0, `rgba(${rgb},0)`);
+    gradient.addColorStop(0.14, `rgba(${rgb},${alpha})`);
+    gradient.addColorStop(0.86, `rgba(${rgb},${alpha})`);
+    gradient.addColorStop(1, `rgba(${rgb},0)`);
+    return gradient;
+  };
+  const fills = bands.map((band) => fade(band.rgb, band.alpha));
+  const edges = bands.map((band) => fade(band.rgb, Math.min(1, band.alpha * 1.6)));
   return {
     draw(t) {
-      glow(ctx, w * (0.5 + Math.sin(t * 0.06) * 0.25), h * 0.25, Math.max(w, h) * 0.4, BLUE, 0.14);
-      ctx.lineWidth = 1;
-      for (const line of lines) {
-        const y = (x: number) =>
-          line.y +
-          line.amp * Math.sin(x * line.k + t * line.speed + line.phase) +
-          line.amp * 0.4 * Math.sin(x * line.k * 2.3 - t * line.speed * 0.7 + line.phase * 2);
-        ctx.strokeStyle = fade;
-        ctx.beginPath();
-        for (let x = 0; x <= w + 16; x += 16) ctx.lineTo(x, y(x));
-        ctx.stroke();
-        for (const comet of line.comets) {
-          const travelled =
-            fract(t * comet.velocity + comet.offset) * (w + comet.length * 2) - comet.length;
-          const head = rtl ? w - travelled : travelled;
-          const edge = clamp(Math.min(head, w - head) / (w * 0.14), 0, 1);
-          const steps = 10;
-          for (let step = 0; step < steps; step++) {
-            const x0 = head - (direction * comet.length * step) / steps;
-            const x1 = head - (direction * comet.length * (step + 1)) / steps;
-            ctx.strokeStyle = `rgba(${ICE},${Math.pow(1 - step / steps, 2) * 0.8 * edge})`;
-            ctx.beginPath();
-            ctx.moveTo(x0, y(x0));
-            ctx.lineTo(x1, y(x1));
-            ctx.stroke();
-          }
-          const headY = y(head);
-          glow(ctx, head, headY, 9, PERIWINKLE, 0.5 * edge);
-          ctx.fillStyle = `rgba(255,255,255,${edge})`;
-          ctx.fillRect(head - 1.5, headY - 1.5, 3, 3);
-        }
+      ctx.save();
+      if (rtl) {
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
       }
+      glow(ctx, w * 0.5, h * 0.5, Math.max(w, h) * 0.42, BLUE, 0.12);
+      const middle = h * (0.5 + Math.sin(t * 0.21) * 0.04);
+      bands.forEach((band, index) => {
+        const thickness = (x: number) => unit * (1 + (band.share - 1) * smooth(0.6, 0.9, x / w));
+        const centre = (x: number) => {
+          const u = x / w;
+          const joined = smooth(0.06, 0.36, u) * (1 - smooth(0.62, 0.92, u));
+          const apart =
+            h * (0.5 + ((u < 0.5 ? band.start : band.end) - 0.5) * spread) +
+            Math.sin(t * 0.34 + index * 2.1) * h * 0.035;
+          const wave = Math.sin(u * 5 - t * 0.5 + index) * unit * 0.22;
+          return apart + (middle + (index - 1) * unit - apart) * joined + wave;
+        };
+        const outline = (from: number, to: number) => {
+          ctx.beginPath();
+          for (let x = from; x <= to; x += step) ctx.lineTo(x, centre(x) - thickness(x) / 2);
+          for (let x = to; x >= from; x -= step) ctx.lineTo(x, centre(x) + thickness(x) / 2);
+          ctx.closePath();
+        };
+        outline(-step, w + step);
+        ctx.fillStyle = fills[index]!;
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = edges[index]!;
+        ctx.stroke();
+        // Value moving through the band: a window of light, clipped to the ribbon's own shape.
+        for (let pulse = 0; pulse < 3; pulse++) {
+          const length = w * 0.11;
+          const head = fract(t * 0.055 + pulse / 3 + index * 0.13) * (w + length * 2) - length;
+          const visible = smooth(0, 0.12, head / w) * (1 - smooth(0.88, 1, head / w));
+          if (visible <= 0) continue;
+          const light = ctx.createLinearGradient(head - length, 0, head, 0);
+          light.addColorStop(0, `rgba(${ICE},0)`);
+          light.addColorStop(0.6, `rgba(${ICE},${0.42 * visible})`);
+          light.addColorStop(1, `rgba(${ICE},0)`);
+          outline(Math.max(-step, head - length), Math.min(w + step, head));
+          ctx.fillStyle = light;
+          ctx.fill();
+        }
+      });
+      ctx.restore();
+    },
+  };
+}
+
+/** A survey map of the shared ground: contour lines that shift and ring the pointer. */
+function contours(ctx: CanvasRenderingContext2D, w: number, h: number, pointer: Pointer): Field {
+  const cell = w < 720 ? 14 : 18;
+  const cols = Math.ceil(w / cell),
+    rows = Math.ceil(h / cell);
+  const stride = cols + 1;
+  const values = new Float32Array(stride * (rows + 1));
+  const levels = [-0.6, -0.36, -0.12, 0.12, 0.36, 0.6, 0.84];
+  return {
+    draw(t) {
+      const time = t * 0.16;
+      for (let r = 0; r <= rows; r++)
+        for (let c = 0; c <= cols; c++) {
+          const x = c * cell,
+            y = r * cell;
+          let value =
+            (Math.sin(x * 0.0056 + time) +
+              Math.sin(y * 0.0078 - time * 0.8) +
+              Math.sin(x * 0.0037 + y * 0.0049 + time * 0.5) +
+              0.5 * Math.sin(x * 0.0105 - y * 0.0087 - time * 0.3)) /
+            3.1;
+          if (pointer.on) {
+            const distance = Math.hypot(x - pointer.x, y - pointer.y) / 150;
+            value += 0.85 * Math.exp(-distance * distance);
+          }
+          values[r * stride + c] = value;
+        }
+      glow(ctx, w * 0.7, h * 0.32, Math.max(w, h) * 0.4, BLUE, 0.06);
+      levels.forEach((level, index) => {
+        // Every third line is an index contour, as on a printed survey map.
+        const major = index % 3 === 0;
+        ctx.lineWidth = major ? 1.4 : 1;
+        ctx.strokeStyle = `rgba(${BLUE},${major ? 0.3 : 0.15})`;
+        ctx.beginPath();
+        trace(ctx, values, cols, rows, cell, level);
+        ctx.stroke();
+      });
     },
   };
 }
@@ -275,49 +355,6 @@ function rings(ctx: CanvasRenderingContext2D, w: number, h: number, rtl: boolean
   };
 }
 
-/** The city's ground plane as a dot matrix; evidence pulses ripple across it. */
-function grid(ctx: CanvasRenderingContext2D, w: number, h: number, pointer: Pointer): Field {
-  const spacing = w < 720 ? 24 : 30;
-  const cols = Math.ceil(w / spacing) + 1;
-  const rows = Math.ceil(h / spacing) + 1;
-  const offsetX = (w - (cols - 1) * spacing) / 2;
-  const offsetY = (h - (rows - 1) * spacing) / 2;
-  const reach = Math.hypot(w, h) * 0.75;
-  const origins = [
-    { x: w * 0.12, y: h * 0.2, delay: 0 },
-    { x: w * 0.9, y: h * 0.75, delay: 0.5 },
-  ];
-  return {
-    draw(t) {
-      glow(ctx, w * (0.72 + Math.sin(t * 0.06) * 0.1), h * 0.3, Math.max(w, h) * 0.4, BLUE, 0.07);
-      const waves = origins.map((origin) => {
-        const phase = fract(t * 0.075 + origin.delay);
-        return { ...origin, radius: phase * reach, weight: 1 - phase };
-      });
-      ctx.fillStyle = `rgb(${BLUE})`;
-      for (let row = 0; row < rows; row++)
-        for (let col = 0; col < cols; col++) {
-          const x = offsetX + col * spacing,
-            y = offsetY + row * spacing;
-          let energy = 0;
-          for (const wave of waves) {
-            const offset = (Math.hypot(x - wave.x, y - wave.y) - wave.radius) / 60;
-            energy += Math.exp(-offset * offset) * wave.weight;
-          }
-          if (pointer.on) {
-            const offset = Math.hypot(x - pointer.x, y - pointer.y) / 110;
-            energy += Math.exp(-offset * offset) * 1.1;
-          }
-          energy = Math.min(1, energy);
-          const size = 1.2 + energy * 1.5;
-          ctx.globalAlpha = 0.11 + energy * 0.4;
-          ctx.fillRect(x - size / 2, y - size / 2, size, size);
-        }
-      ctx.globalAlpha = 1;
-    },
-  };
-}
-
 /**
  * Canvas 2D ambient layer for sections that have no WebGL scene. The picture is a pure
  * function of elapsed time, so a paused or reduced-motion visitor keeps a composed still.
@@ -362,13 +399,13 @@ export function createAmbientField(canvas: HTMLCanvasElement, variant: AmbientVa
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       field =
-        variant === 'network'
-          ? network(ctx, width, height, pointer)
-          : variant === 'flow'
-            ? flow(ctx, width, height, rtl)
+        variant === 'merge'
+          ? merge(ctx, width, height, pointer)
+          : variant === 'ribbons'
+            ? ribbons(ctx, width, height, rtl)
             : variant === 'rings'
               ? rings(ctx, width, height, rtl)
-              : grid(ctx, width, height, pointer);
+              : contours(ctx, width, height, pointer);
       paint();
     },
     setActive(value: boolean) {

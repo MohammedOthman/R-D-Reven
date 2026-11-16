@@ -10,8 +10,6 @@ import fileCheck from '@iconify-icons/solar/document-add-linear';
 import flag from '@iconify-icons/solar/flag-linear';
 import layers from '@iconify-icons/solar/layers-linear';
 import menu from '@iconify-icons/solar/hamburger-menu-linear';
-import pause from '@iconify-icons/solar/pause-linear';
-import play from '@iconify-icons/solar/play-linear';
 import close from '@iconify-icons/solar/close-circle-linear';
 
 // Solar via Iconify, CC BY 4.0. Attribution: docs/design/MOTION_GRAPHICS.md.
@@ -25,8 +23,6 @@ const icons = {
   flag,
   layers,
   menu,
-  pause,
-  play,
   close,
 };
 function makeIcon(name: keyof typeof icons) {
@@ -43,6 +39,4 @@ export const FileCheck2 = makeIcon('fileCheck');
 export const Flag = makeIcon('flag');
 export const Layers3 = makeIcon('layers');
 export const Menu = makeIcon('menu');
-export const Pause = makeIcon('pause');
-export const Play = makeIcon('play');
 export const X = makeIcon('close');

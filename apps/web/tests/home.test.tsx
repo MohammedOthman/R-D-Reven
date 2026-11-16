@@ -79,26 +79,21 @@ describe('public home handoffs and controls', () => {
     fireEvent.keyDown(selected, { key: 'End' });
     expect(screen.getByRole('tab', { name: /Evidence & results/ })).toHaveFocus();
   });
-  it('pauses and resumes all decorative scene motion', () => {
-    const { container } = mount();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Pause motion' })[0]!);
-    expect(container.firstChild).toHaveAttribute('data-motion', 'off');
-    expect(screen.getAllByRole('button', { name: 'Resume motion' })[0]!).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    fireEvent.click(screen.getAllByRole('button', { name: 'Resume motion' })[0]!);
-    expect(container.firstChild).toHaveAttribute('data-motion', 'on');
+  it('offers no control or mention for pausing motion', () => {
+    mount();
+    expect(screen.queryByRole('button', { name: /motion/i })).toBeNull();
+    expect(screen.queryByText(/pause|resume/i)).toBeNull();
   });
   it('adds a decorative ambient layer to each section without a 3D scene', () => {
     const { container } = mount();
     const layers = [...container.querySelectorAll('.hm-ambient')];
     expect(layers.map((layer) => layer.className.split('--')[1])).toEqual([
-      'network',
-      'flow',
-      'grid',
+      'merge',
+      'ribbons',
+      'contours',
       'rings',
     ]);
+    expect(container.querySelector('.hm-kinetic')).toHaveAttribute('aria-hidden', 'true');
     expect(layers.every((layer) => layer.getAttribute('aria-hidden') === 'true')).toBe(true);
   });
   it('closes mobile navigation after selecting a section and on Escape', () => {
