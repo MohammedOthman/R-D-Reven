@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@revn/config/tailwind/theme.css';
+@import './workspace.css';
 
 /* Tailwind v4 scans this app's own files automatically; packages consumed as
    source (not pre-built) need an explicit @source so their utility classes

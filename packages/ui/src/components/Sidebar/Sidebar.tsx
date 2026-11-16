@@ -58,6 +58,7 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside
+      data-slot="sidebar"
       className={cn(
         'bg-navy flex h-full flex-col text-white transition-[width] duration-200',
         className,

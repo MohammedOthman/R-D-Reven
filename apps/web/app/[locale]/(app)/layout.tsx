@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cookies } from 'next/headers';
 import { redirect } from '@/src/i18n/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { getCurrentUser } from '@/src/lib/auth/session';
@@ -32,8 +33,15 @@ export default async function AppLayout({
     return redirect({ href: '/sign-in', locale });
   }
 
+  const motionEnabled = (await cookies()).get('reven_motion')?.value !== 'off';
   return (
-    <AppShell user={user} tenant={tenant} role={role} pilotMode={pilotMode}>
+    <AppShell
+      user={user}
+      tenant={tenant}
+      role={role}
+      pilotMode={pilotMode}
+      initialMotionEnabled={motionEnabled}
+    >
       {children}
     </AppShell>
   );

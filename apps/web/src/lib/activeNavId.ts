@@ -1,5 +1,17 @@
-/** Maps a locale-agnostic pathname to the sidebar nav item id it should highlight. */
+/** Maps locale-agnostic workspace paths, including record pages, to navigation. */
 export function activeNavIdFromPathname(pathname: string): string {
-  if (pathname.startsWith('/design-system')) return 'design-system';
-  return 'command-center';
+  const sections = [
+    'partnerships',
+    'initiatives',
+    'reviews',
+    'agreements',
+    'evidence-outcomes',
+    'audit',
+    'administration',
+    'design-system',
+  ];
+  return (
+    sections.find((section) => pathname === `/${section}` || pathname.startsWith(`/${section}/`)) ??
+    'command-center'
+  );
 }
