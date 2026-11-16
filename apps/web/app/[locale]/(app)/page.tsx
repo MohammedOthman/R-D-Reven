@@ -1,16 +1,16 @@
+import type { ReactNode } from 'react';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import { AlertTriangle, CalendarClock, Gavel, Handshake, Rocket, ShieldCheck } from 'lucide-react';
 import {
-  Card,
-  PageHeader,
-  buttonVariants,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  EmptyState,
-  StatusBadge,
-} from '@revn/ui';
+  AlertTriangle,
+  ArrowUpRight,
+  CalendarClock,
+  CheckCheck,
+  Gavel,
+  Handshake,
+  Rocket,
+  ShieldCheck,
+} from 'lucide-react';
+import { EmptyState, StatusBadge } from '@revn/ui';
 import { WorkspaceDate } from '@/src/components/WorkspaceFormat';
 import { Link } from '@/src/i18n/navigation';
 import { getCurrentTenant } from '@/src/lib/tenant/session';
@@ -19,14 +19,37 @@ import { getPartnerships } from '@/src/lib/partnerships/session';
 import { getPartners } from '@/src/lib/partners/session';
 import { getMemberDirectory } from '@/src/lib/members/session';
 import { PilotGuide } from '@/src/components/PilotGuide';
+import {
+  PortfolioHealth,
+  PortfolioStages,
+  OverviewAction,
+} from '@/src/components/PortfolioVisuals';
+import { dashboardAccess } from '@/src/lib/dashboard/visuals';
 
-// No PRD matrix row is named "Command Center" — US-006 traces it to
-// PORT/RPT, so this borrows "Portfolio read"'s shape (Reviewer included,
-// same as Partner/Partnership lists). Guest gets a lighter landing message
-// below rather than a hard Forbidden page, since `/` is the default
-// post-sign-in destination for every role, not a link a Guest chose to
-// follow. See docs/DECISIONS.md.
 const READ_ROLES = ['OWNER', 'ADMIN', 'EXECUTIVE', 'MANAGER', 'REVIEWER'];
+
+function QueueItem({
+  children,
+  href,
+  className = '',
+}: {
+  children: ReactNode;
+  href?: string;
+  className?: string;
+}) {
+  return (
+    <li className={className}>
+      {href ? (
+        <Link href={href} prefetch={false} className="rv-queue-item">
+          {children}
+          <ArrowUpRight size={16} className="rv-queue-arrow" aria-hidden="true" />
+        </Link>
+      ) : (
+        <div className="rv-queue-item">{children}</div>
+      )}
+    </li>
+  );
+}
 
 export default async function CommandCenterPage({
   params,
@@ -35,311 +58,299 @@ export default async function CommandCenterPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-
   const { tenant, role } = await getCurrentTenant();
   const t = await getTranslations('commandCenter');
-
-  if (!tenant || !role || !READ_ROLES.includes(role)) {
+  const v = await getTranslations('visual');
+  if (!tenant || !role || !READ_ROLES.includes(role))
     return (
-      <div className="mx-auto max-w-3xl py-12">
-        <EmptyState
-          icon={<Handshake className="size-6" aria-hidden="true" />}
-          title={t('guestTitle')}
-          description={t('guestDescription')}
-        />
-      </div>
+      <EmptyState
+        icon={<Handshake size={24} aria-hidden="true" />}
+        title={t('guestTitle')}
+        description={t('guestDescription')}
+      />
     );
-  }
-
-  const [dashboard, partnerships, partners, members] = await Promise.all([
+  const data = await Promise.all([
     getDashboard(tenant.id),
-    getPartnerships(tenant.id),
-    getPartners(tenant.id),
+    getPartnerships(tenant.id, { failOnError: true }),
+    getPartners(tenant.id, { failOnError: true }),
     getMemberDirectory(tenant.id),
-  ]);
-
-  if (!dashboard) {
-    return (
-      <div className="mx-auto max-w-3xl py-12">
-        <EmptyState title={t('errorTitle')} description={t('errorDescription')} />
-      </div>
-    );
-  }
-
+  ]).catch(() => null);
+  if (!data || !data[0])
+    return <EmptyState title={t('errorTitle')} description={t('errorDescription')} />;
+  const [dashboard, partnerships, partners, members] = data;
+  if (!dashboard) return <EmptyState title={t('errorTitle')} description={t('errorDescription')} />;
+  const { canExecute } = dashboardAccess(role);
   const partnerById = new Map(partners.map((p) => [p.id, p]));
-  const partnerNameForPartnership = (partnershipId: string) => {
-    const partnership = partnerships.find((p) => p.id === partnershipId);
-    if (!partnership) return '—';
-    return partnerById.get(partnership.partnerId)?.displayName ?? '—';
-  };
-  const memberName = (userId: string | null) => members.find((m) => m.id === userId)?.name ?? '—';
-
+  const portfolio = partnerships.map((p) => ({
+    ...p,
+    partnerName: partnerById.get(p.partnerId)?.displayName ?? '—',
+  }));
+  const partnerName = (id: string) => portfolio.find((p) => p.id === id)?.partnerName ?? '—';
+  const memberName = (id: string | null) => members.find((m) => m.id === id)?.name ?? '—';
   const kpis = [
-    {
-      key: 'activePartnerships',
-      value: dashboard.kpis.activePartnerships,
-      icon: <Handshake className="size-4" aria-hidden="true" />,
-      href: '/partnerships',
-      alert: false,
-    },
-    {
-      key: 'atRiskPartnerships',
-      value: dashboard.kpis.atRiskPartnerships,
-      icon: <AlertTriangle className="size-4" aria-hidden="true" />,
-      href: '/partnerships',
-      alert: dashboard.kpis.atRiskPartnerships > 0,
-    },
+    { key: 'activePartnerships', icon: Handshake, href: '/partnerships', tone: 'blue' },
+    { key: 'atRiskPartnerships', icon: AlertTriangle, href: '/partnerships', tone: 'alert' },
     {
       key: 'openInitiatives',
-      value: dashboard.kpis.openInitiatives,
-      icon: <Rocket className="size-4" aria-hidden="true" />,
-      href: '/initiatives',
-      alert: false,
+      icon: Rocket,
+      href: canExecute ? '/initiatives' : undefined,
+      tone: 'blue',
     },
     {
       key: 'pendingDecisions',
-      value: dashboard.kpis.pendingDecisions,
-      icon: <Gavel className="size-4" aria-hidden="true" />,
-      href: '/reviews',
-      alert: dashboard.kpis.pendingDecisions > 0,
+      icon: Gavel,
+      href: canExecute ? '/reviews' : undefined,
+      tone: 'caution',
     },
-    {
-      key: 'reviewsDue',
-      value: dashboard.kpis.reviewsDue,
-      icon: <CalendarClock className="size-4" aria-hidden="true" />,
-      href: '/partnerships',
-      alert: dashboard.kpis.reviewsDue > 0,
-    },
+    { key: 'reviewsDue', icon: CalendarClock, href: '/partnerships', tone: 'caution' },
     {
       key: 'outcomesAwaitingVerification',
-      value: dashboard.kpis.outcomesAwaitingVerification,
-      icon: <ShieldCheck className="size-4" aria-hidden="true" />,
+      icon: ShieldCheck,
       href: '/evidence-outcomes',
-      alert: false,
+      tone: 'blue',
     },
   ] as const;
-
-  const hasExceptions =
-    dashboard.exceptions.atRiskPartnerships.length > 0 ||
-    dashboard.exceptions.blockedInitiatives.length > 0 ||
-    dashboard.exceptions.blockedActions.length > 0 ||
-    dashboard.exceptions.rejectedOutcomes.length > 0;
-
+  const exceptions = [
+    ...dashboard.exceptions.atRiskPartnerships.map((p) => ({
+      id: p.id,
+      name: partnerName(p.id),
+      type: 'atRiskPartnership',
+      href: '/partnerships',
+    })),
+    ...dashboard.exceptions.blockedInitiatives.map((i) => ({
+      id: i.id,
+      name: i.objective,
+      type: 'blockedInitiative',
+      href: canExecute ? `/initiatives/${i.id}` : undefined,
+    })),
+    ...dashboard.exceptions.blockedActions.map((a) => ({
+      id: a.id,
+      name: a.title,
+      type: 'blockedAction',
+      href: undefined,
+    })),
+    ...dashboard.exceptions.rejectedOutcomes.map((o) => ({
+      id: o.id,
+      name: o.type,
+      type: 'rejectedOutcome',
+      href: `/evidence-outcomes/${o.id}`,
+    })),
+  ];
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader eyebrow={t('eyebrow')} title={t('title')} description={t('description')} />
-      {process.env.PILOT_AUTO_LOGIN === 'true' && <PilotGuide role={role} />}
-      {process.env.PILOT_AUTO_LOGIN !== 'true' &&
-        partners.length === 0 &&
-        ['OWNER', 'ADMIN', 'MANAGER'].includes(role) && (
-          <Card className="border-accent/20">
-            <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="max-w-xl">
-                  <h2 className="font-display text-ink text-xl font-bold">
-                    {t('gettingStarted.title')}
-                  </h2>
-                  <p className="text-muted-body mt-2 text-sm leading-relaxed">
-                    {t('gettingStarted.description')}
-                  </p>
-                </div>
-                <Link
-                  prefetch={false}
-                  href="/partnerships?create=partner"
-                  className={buttonVariants({ variant: 'primary' })}
-                >
-                  {t('gettingStarted.action')}
-                </Link>
-              </div>
-              <ol className="grid gap-4 border-t border-[var(--border-subtle)] pt-6 sm:grid-cols-3">
-                {(['partner', 'relationship', 'initiative'] as const).map((step, index) => (
-                  <li key={step} className="flex items-start gap-3">
-                    <span className="text-muted-body flex size-7 shrink-0 items-center justify-center rounded-full border border-[var(--border-default)] text-sm font-semibold">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="text-ink text-sm font-semibold">
-                        {t(`gettingStarted.${step}`)}
-                      </p>
-                      <p className="text-muted-body mt-1 text-[13px] leading-relaxed">
-                        {t(`gettingStarted.${step}Description`)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </CardContent>
-          </Card>
-        )}
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {kpis.map((kpi) => (
-          <Link
-            prefetch={false}
-            key={kpi.key}
-            href={kpi.href}
-            className="focus-visible:ring-accent block rounded-lg focus-visible:ring-2 focus-visible:outline-none"
-          >
-            <Card className="h-full transition-shadow hover:shadow-md">
-              <CardContent className="flex flex-col gap-2 pt-5">
-                <div
-                  className={
-                    kpi.alert
-                      ? 'text-status-alert flex items-center gap-1.5'
-                      : 'text-muted-tertiary flex items-center gap-1.5'
-                  }
-                >
-                  {kpi.icon}
-                </div>
-                <p className="font-display text-ink text-2xl font-extrabold">{kpi.value}</p>
-                <p className="text-muted-body text-[13px]">{t(`kpi.${kpi.key}`)}</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('exceptionsTitle')}</CardTitle>
-          <CardDescription>{t('exceptionsDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {!hasExceptions ? (
-            <EmptyState
-              className="border-0 py-8"
-              title={t('noExceptionsTitle')}
-              description={t('noExceptionsDescription')}
-            />
-          ) : (
+    <div className="rv-overview">
+      <section
+        className="rv-hero"
+        aria-labelledby="overview-heading"
+        data-design="visual-workspace-v1"
+      >
+        <div className="rv-hero-copy">
+          <p className="rv-kicker">
+            <span className="rv-brand-line" aria-hidden="true" />
+            {v('eyebrow')}
+          </p>
+          <h1 id="overview-heading">{v('title')}</h1>
+          <p className="rv-hero-lead">{v('description')}</p>
+          <OverviewAction role={role} />
+          <p className="rv-hero-note">
+            <Handshake size={15} aria-hidden="true" />
+            {v('portfolioScope', { partners: partners.length, relationships: partnerships.length })}
+          </p>
+        </div>
+        <PortfolioHealth partnerships={partnerships} />
+      </section>
+      <section className="rv-metrics" aria-label={v('metricsTitle')}>
+        {kpis.map(({ key, icon: Icon, href, tone }) => {
+          const value = dashboard.kpis[key];
+          const content = (
             <>
-              {dashboard.exceptions.atRiskPartnerships.map((p) => (
-                <Link
-                  prefetch={false}
-                  key={p.id}
-                  href="/partnerships"
-                  className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
-                >
-                  <span className="text-ink truncate">{partnerNameForPartnership(p.id)}</span>
-                  <StatusBadge label={t('exceptionType.atRiskPartnership')} tone="alert" />
-                </Link>
-              ))}
-              {dashboard.exceptions.blockedInitiatives.map((i) => (
-                <Link
-                  prefetch={false}
-                  key={i.id}
-                  href={`/initiatives/${i.id}`}
-                  className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
-                >
-                  <span className="text-ink truncate">{i.objective}</span>
-                  <StatusBadge label={t('exceptionType.blockedInitiative')} tone="alert" />
-                </Link>
-              ))}
-              {dashboard.exceptions.blockedActions.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
-                >
-                  <span className="text-ink truncate">{a.title}</span>
-                  <StatusBadge label={t('exceptionType.blockedAction')} tone="alert" />
-                </div>
-              ))}
-              {dashboard.exceptions.rejectedOutcomes.map((o) => (
-                <Link
-                  prefetch={false}
-                  key={o.id}
-                  href={`/evidence-outcomes/${o.id}`}
-                  className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
-                >
-                  <span className="text-ink truncate">{o.type}</span>
-                  <StatusBadge label={t('exceptionType.rejectedOutcome')} tone="alert" />
-                </Link>
-              ))}
+              <div className={`rv-metric-icon rv-tone-${value > 0 ? tone : 'blue'}`}>
+                <Icon size={20} aria-hidden="true" />
+              </div>
+              <div>
+                <p className="rv-metric-value">{new Intl.NumberFormat(locale).format(value)}</p>
+                <p className="rv-metric-label">{t(`kpi.${key}`)}</p>
+              </div>
+              {href && <ArrowUpRight className="rv-metric-arrow" size={16} aria-hidden="true" />}
             </>
+          );
+          return href ? (
+            <Link key={key} prefetch={false} href={href} className="rv-metric">
+              {content}
+            </Link>
+          ) : (
+            <div key={key} className="rv-metric">
+              {content}
+            </div>
+          );
+        })}
+      </section>
+      <div className="rv-analytics-grid">
+        <PortfolioStages partnerships={portfolio} />
+        <section className="rv-panel rv-attention" aria-labelledby="attention-heading">
+          <div className="rv-panel-heading">
+            <div>
+              <p className="rv-kicker">
+                <AlertTriangle size={15} aria-hidden="true" />
+                {v('attentionEyebrow')}
+              </p>
+              <h2 id="attention-heading">{t('exceptionsTitle')}</h2>
+              <p>{v('attentionDescription')}</p>
+            </div>
+          </div>
+          {exceptions.length ? (
+            <>
+              <ul className="rv-queue-list">
+                {exceptions.slice(0, 5).map((item) => (
+                  <QueueItem key={item.id} href={item.href}>
+                    <span className="rv-attention-mark" aria-hidden="true" />
+                    <div className="rv-queue-copy">
+                      <p>{item.name}</p>
+                      <span>{t(`exceptionType.${item.type}`)}</span>
+                    </div>
+                  </QueueItem>
+                ))}
+              </ul>
+              <p className="rv-list-note">{v('attentionPreview')}</p>
+            </>
+          ) : (
+            <div className="rv-clear-state">
+              <span>
+                <CheckCheck size={28} aria-hidden="true" />
+              </span>
+              <h3>{t('noExceptionsTitle')}</h3>
+              <p>{t('noExceptionsDescription')}</p>
+            </div>
           )}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('reviewsDueTitle')}</CardTitle>
-            <CardDescription>{t('reviewsDueDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {dashboard.reviewsDue.length === 0 ? (
-              <EmptyState title={t('noReviewsDueTitle')} />
-            ) : (
-              dashboard.reviewsDue.map((p) => {
-                const overdue = p.nextReviewAt ? new Date(p.nextReviewAt) < new Date() : false;
-                return (
-                  <Link
-                    prefetch={false}
-                    key={p.id}
-                    href="/partnerships"
-                    className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
-                  >
-                    <span className="text-ink truncate">{partnerNameForPartnership(p.id)}</span>
-                    <span
-                      className={overdue ? 'text-status-alert text-xs' : 'text-muted-body text-xs'}
-                    >
-                      {p.nextReviewAt ? <WorkspaceDate value={p.nextReviewAt} /> : '—'}
-                    </span>
-                  </Link>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('decisionsTitle')}</CardTitle>
-            <CardDescription>{t('decisionsDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {dashboard.pendingDecisions.length === 0 ? (
-              <EmptyState title={t('noDecisionsTitle')} />
-            ) : (
-              dashboard.pendingDecisions.map((d) => (
-                <Link
-                  prefetch={false}
-                  key={d.id}
-                  href={d.reviewId ? `/reviews/${d.reviewId}` : '/reviews'}
-                  className="hover:bg-canvas flex flex-col gap-0.5 rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
-                >
-                  <span className="text-ink truncate">{d.rationale}</span>
-                  <span className="text-muted-body text-xs">{memberName(d.deciderId)}</span>
-                </Link>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('initiativesTitle')}</CardTitle>
-            <CardDescription>{t('initiativesDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {dashboard.initiativesNeedingAttention.length === 0 ? (
-              <EmptyState title={t('noInitiativesTitle')} />
-            ) : (
-              dashboard.initiativesNeedingAttention.map((i) => (
-                <Link
-                  prefetch={false}
-                  key={i.id}
-                  href={`/initiatives/${i.id}`}
-                  className="hover:bg-canvas flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2 text-sm"
-                >
-                  <span className="text-ink truncate">{i.objective}</span>
-                  <StatusBadge label={t(`initiativeStage.${i.stage}`)} />
-                </Link>
-              ))
-            )}
-          </CardContent>
-        </Card>
+          <div className="rv-attention-footer">
+            <ShieldCheck size={18} aria-hidden="true" />
+            <div>
+              <strong>
+                {new Intl.NumberFormat(locale).format(dashboard.kpis.outcomesAwaitingVerification)}
+              </strong>
+              <span>{t('kpi.outcomesAwaitingVerification')}</span>
+            </div>
+            <Link
+              href="/evidence-outcomes"
+              prefetch={false}
+              aria-label={v('action.outcome')}
+              className="rv-icon-link"
+            >
+              <ArrowUpRight size={18} aria-hidden="true" />
+            </Link>
+          </div>
+        </section>
       </div>
+      {process.env.PILOT_AUTO_LOGIN === 'true' && <PilotGuide role={role} />}
+      <div className={`rv-queue-grid ${!canExecute ? 'rv-queue-grid--single' : ''}`}>
+        <section className="rv-panel" aria-labelledby="reviews-due-heading">
+          <div className="rv-panel-heading">
+            <div>
+              <p className="rv-kicker">
+                <CalendarClock size={15} aria-hidden="true" />
+                {v('reviewEyebrow')}
+              </p>
+              <h2 id="reviews-due-heading">{t('reviewsDueTitle')}</h2>
+              <p>{t('reviewsDueDescription')}</p>
+            </div>
+          </div>
+          {dashboard.reviewsDue.length ? (
+            <ul className="rv-queue-list rv-timeline">
+              {dashboard.reviewsDue.slice(0, 4).map((p) => (
+                <QueueItem key={p.id} href="/partnerships">
+                  <span className="rv-timeline-node" aria-hidden="true" />
+                  <div className="rv-queue-copy">
+                    <p>{partnerName(p.id)}</p>
+                    <span>{p.nextReviewAt ? <WorkspaceDate value={p.nextReviewAt} /> : '—'}</span>
+                  </div>
+                </QueueItem>
+              ))}
+            </ul>
+          ) : (
+            <div className="rv-queue-empty">
+              <CalendarClock size={24} aria-hidden="true" />
+              <p>{t('noReviewsDueTitle')}</p>
+            </div>
+          )}
+          <Link href="/partnerships" prefetch={false} className="rv-panel-link">
+            {v('openPortfolio')}
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </Link>
+        </section>
+        {canExecute && (
+          <>
+            <section className="rv-panel" aria-labelledby="decisions-heading">
+              <div className="rv-panel-heading">
+                <div>
+                  <p className="rv-kicker">
+                    <Gavel size={15} aria-hidden="true" />
+                    {v('decisionEyebrow')}
+                  </p>
+                  <h2 id="decisions-heading">{t('decisionsTitle')}</h2>
+                  <p>{t('decisionsDescription')}</p>
+                </div>
+              </div>
+              {dashboard.pendingDecisions.length ? (
+                <ul className="rv-queue-list">
+                  {dashboard.pendingDecisions.slice(0, 4).map((d) => (
+                    <QueueItem key={d.id} href={d.reviewId ? `/reviews/${d.reviewId}` : '/reviews'}>
+                      <div className="rv-queue-copy">
+                        <p>{d.rationale}</p>
+                        <span>{memberName(d.deciderId)}</span>
+                      </div>
+                    </QueueItem>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rv-queue-empty">
+                  <Gavel size={24} aria-hidden="true" />
+                  <p>{t('noDecisionsTitle')}</p>
+                </div>
+              )}
+              <Link href="/reviews" prefetch={false} className="rv-panel-link">
+                {v('action.review')}
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </Link>
+            </section>
+            <section className="rv-panel" aria-labelledby="initiatives-heading">
+              <div className="rv-panel-heading">
+                <div>
+                  <p className="rv-kicker">
+                    <Rocket size={15} aria-hidden="true" />
+                    {v('workEyebrow')}
+                  </p>
+                  <h2 id="initiatives-heading">{t('initiativesTitle')}</h2>
+                  <p>{t('initiativesDescription')}</p>
+                </div>
+              </div>
+              {dashboard.initiativesNeedingAttention.length ? (
+                <ul className="rv-queue-list">
+                  {dashboard.initiativesNeedingAttention.slice(0, 4).map((i) => (
+                    <QueueItem key={i.id} href={`/initiatives/${i.id}`}>
+                      <div className="rv-queue-copy">
+                        <p>{i.objective}</p>
+                        <StatusBadge
+                          label={t(`initiativeStage.${i.stage}`)}
+                          tone={i.stage === 'BLOCKED' ? 'alert' : 'neutral'}
+                        />
+                      </div>
+                    </QueueItem>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rv-queue-empty">
+                  <Rocket size={24} aria-hidden="true" />
+                  <p>{t('noInitiativesTitle')}</p>
+                </div>
+              )}
+              <Link href="/initiatives" prefetch={false} className="rv-panel-link">
+                {v('openInitiatives')}
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </Link>
+            </section>
+          </>
+        )}
+      </div>
+      <p className="rv-overview-footnote">{v('previewNote')}</p>
     </div>
   );
 }

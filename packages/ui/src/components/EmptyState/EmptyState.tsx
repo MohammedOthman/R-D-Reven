@@ -18,6 +18,7 @@ export interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
   return (
     <div
+      data-slot="emptystate"
       className={cn(
         'flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-[var(--border-default)] px-6 py-16 text-center',
         className,

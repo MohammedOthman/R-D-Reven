@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { PilotGuide } from '@/src/components/PilotGuide';
 
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 vi.mock('@/src/i18n/navigation', () => ({
   Link: ({

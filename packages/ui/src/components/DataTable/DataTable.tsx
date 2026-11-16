@@ -57,6 +57,7 @@ export function DataTable<T>({
 
   return (
     <div
+      data-slot="datatable"
       className={cn(
         'bg-card overflow-x-auto rounded-lg border border-[var(--border-default)]',
         className,

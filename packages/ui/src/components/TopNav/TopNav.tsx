@@ -26,6 +26,7 @@ export function TopNav({
 }: TopNavProps) {
   return (
     <header
+      data-slot="topnav"
       className={cn(
         'bg-card flex h-[var(--shell-topbar-height)] shrink-0 items-center justify-between gap-4 border-b border-[var(--border-default)] px-4 sm:px-6',
         className,

@@ -17,6 +17,7 @@ export interface PageHeaderProps {
 export function PageHeader({ eyebrow, title, description, actions, className }: PageHeaderProps) {
   return (
     <div
+      data-slot="pageheader"
       className={cn('flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between', className)}
     >
       <div className="flex min-w-0 flex-col gap-2 text-start">

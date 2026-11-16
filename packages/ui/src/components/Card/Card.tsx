@@ -4,6 +4,7 @@ import { cn } from '../../lib/cn';
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      data-slot="card"
       className={cn(
         'bg-card min-w-0 rounded-lg border border-[var(--border-default)] shadow-xs',
         className,
@@ -20,6 +21,7 @@ export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElemen
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
+      data-slot="card-title"
       className={cn(
         'font-display text-ink text-base font-bold tracking-[var(--tracking-display)]',
         className,
