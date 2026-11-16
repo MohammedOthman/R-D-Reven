@@ -13,7 +13,7 @@ export default async function ForgotPasswordPage({
 
   const user = await getCurrentUser();
   if (user) {
-    redirect({ href: '/', locale });
+    redirect({ href: '/workspace', locale });
   }
 
   return <ForgotPasswordForm />;

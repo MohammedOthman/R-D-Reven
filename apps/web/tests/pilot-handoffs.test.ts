@@ -13,8 +13,8 @@ describe('pilot task handoffs', () => {
     );
   });
   it('returns to the overview when the new role cannot open the current area', () => {
-    expect(pilotDestination('/initiatives/initiative-1', 'REVIEWER')).toBe('/');
-    expect(pilotDestination('/partnerships/import', 'EXECUTIVE')).toBe('/');
+    expect(pilotDestination('/initiatives/initiative-1', 'REVIEWER')).toBe('/workspace');
+    expect(pilotDestination('/partnerships/import', 'EXECUTIVE')).toBe('/workspace');
   });
   it('does not preserve account, unknown or external paths', () => {
     for (const path of [
@@ -24,7 +24,7 @@ describe('pilot task handoffs', () => {
       'https://example.com',
       '/unknown',
     ]) {
-      expect(pilotDestination(path, 'OWNER')).toBe('/');
+      expect(pilotDestination(path, 'OWNER')).toBe('/workspace');
     }
   });
   it('keeps permitted read-only commercial rules visible to a Reviewer', () => {

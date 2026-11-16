@@ -972,5 +972,162 @@
     "motionReduced": "Motion reduced by your device setting",
     "motionOn": "Motion on",
     "motionOff": "Motion off"
+  },
+  "home": {
+    "pageTitle": "Reven · The Partner Revenue Operating System",
+    "homeLabel": "Reven home",
+    "skip": "Skip to content",
+    "navigation": "Main navigation",
+    "footerNavigation": "Footer navigation",
+    "openMenu": "Open navigation",
+    "closeMenu": "Close navigation",
+    "category": "The Partner Revenue Operating System",
+    "positioning": "The operating system for revenue shared between companies.",
+    "headline": {
+      "first": "See what your",
+      "second": "partnerships",
+      "third": "deliver."
+    },
+    "heroDescription": "Manage partners, assign joint work, and verify results in one place.",
+    "proof": {
+      "ownership": "Named owners",
+      "evidence": "Verified outcomes",
+      "bilingual": "English & Arabic"
+    },
+    "nav": {
+      "platform": "How it works",
+      "why": "Why Reven",
+      "teams": "For your team",
+      "workspace": "Open workspace",
+      "pilot": "Try the pilot"
+    },
+    "getStarted": "Create your workspace",
+    "explorePilot": "Try the pilot",
+    "scroll": "_Scroll to learn more",
+    "pause": "Pause motion",
+    "play": "Resume motion",
+    "story": {
+      "eyebrow": "Keep the work connected",
+      "label": "One partnership. From plan to proof.",
+      "title": "Shared plans need shared context.",
+      "description": "Keep each agreement connected to its initiatives, decisions, and supporting evidence.",
+      "nodes": {
+        "agreement": "Agreement",
+        "work": "Joint work",
+        "result": "Verified result"
+      }
+    },
+    "why": {
+      "eyebrow": "Why Reven",
+      "title": "Less chasing. More progress.",
+      "description": "When plans live in inboxes and spreadsheets, commitments are easy to miss. Reven connects the agreement, the work, and the result.",
+      "clarity": {
+        "label": "Clarity",
+        "title": "Know where each partnership stands.",
+        "description": "See objectives, owners, health, and the next review together. Find what needs attention without collecting updates.",
+        "foot": "One view of the relationship"
+      },
+      "accountability": {
+        "label": "Accountability",
+        "title": "Make the next step clear.",
+        "description": "Give every action an owner and due date. Track milestones and surface blockers before the next review.",
+        "foot": "Named owners and due dates"
+      },
+      "confidence": {
+        "label": "Confidence",
+        "title": "Show what was delivered.",
+        "description": "Attach evidence to claimed results. An assigned, independent verifier accepts the outcome or asks for more detail.",
+        "foot": "Results linked to evidence"
+      }
+    },
+    "platform": {
+      "eyebrow": "How Reven works",
+      "title": "One workspace. From plan to proof.",
+      "description": "Explore four connected parts of Reven. Each keeps the next step tied to the same partnership.",
+      "tabLabel": "Explore platform capabilities",
+      "sceneCaption": "Illustration / Four connected parts of a partnership",
+      "explore": "Open the pilot workspace",
+      "portfolio": {
+        "label": "Partnerships",
+        "title": "See the relationship in one place.",
+        "description": "Track the partner, objective, owner, health, and next review. Open the full history when you need context."
+      },
+      "execution": {
+        "label": "Joint work",
+        "title": "Turn a plan into assigned work.",
+        "description": "Set milestones, assign actions, and track blockers. Everyone responsible can see what happens next."
+      },
+      "governance": {
+        "label": "Agreements",
+        "title": "Work from the approved agreement.",
+        "description": "Keep agreement versions and commercial rules with the partnership. See what was approved and when it changed."
+      },
+      "outcomes": {
+        "label": "Evidence & results",
+        "title": "Back every result with evidence.",
+        "description": "Record contributions and supporting files or links. Send the outcome to an assigned verifier for an independent review."
+      },
+      "create": "Create your workspace"
+    },
+    "system": {
+      "eyebrow": "The operating rhythm",
+      "title": "A clear path from agreement to result.",
+      "description": "Agree on the goal. Assign the work. Review progress. Verify the outcome. Each step keeps the context of the last.",
+      "align": {
+        "title": "Align",
+        "description": "Set the objective, agree on commitments, and name the people responsible."
+      },
+      "execute": {
+        "title": "Execute",
+        "description": "Assign actions and milestones. Keep blockers visible as the work moves."
+      },
+      "review": {
+        "title": "Review",
+        "description": "Review progress, record decisions, and assign the next actions."
+      },
+      "verify": {
+        "title": "Verify",
+        "description": "Attach evidence and ask an independent verifier to review the result."
+      },
+      "note": "Your team makes the decisions. Reven keeps the record."
+    },
+    "teams": {
+      "eyebrow": "For your team",
+      "title": "Built for the people doing the work.",
+      "description": "Partnership managers, executives, and reviewers work from the same records, with access shaped by their roles.",
+      "alliances": {
+        "label": "Partnership teams",
+        "title": "Know what to do next.",
+        "description": "See the next action, review date, and open blocker for each relationship. Spend less time chasing updates.",
+        "artTitle": "Joint initiative",
+        "artDetail": "Owner · Milestones · Next action"
+      },
+      "leadership": {
+        "label": "Executives",
+        "title": "See where attention is needed.",
+        "description": "Find partnerships at risk and decisions waiting for approval. Focus the next conversation on what matters.",
+        "artTitle": "Portfolio review",
+        "artDetail": "Health · Blockers · Decisions"
+      },
+      "reviewers": {
+        "label": "Reviewers & verifiers",
+        "title": "Decide with the evidence in view.",
+        "description": "Review agreement versions and assigned outcomes. Keep the supporting evidence and decision history close.",
+        "artTitle": "Outcome review",
+        "artDetail": "Contribution · Evidence · Verification"
+      },
+      "illustration": "Illustrative workflow"
+    },
+    "cta": {
+      "eyebrow": "Start with one partnership",
+      "title": "Put your partnership",
+      "highlight": "plans to work."
+    },
+    "tagline": "Turning partnerships from a cost center into a profit center.",
+    "footerNote": "Clear ownership. Connected work. Verified outcomes.",
+    "backToTop": "Back to top",
+    "secondaryCta": "See how it works",
+    "entryNote": "Start with your organization. Invite your team when you’re ready.",
+    "pilotNote": "Explore a shared demo workspace. No account needed."
   }
 }

@@ -2,12 +2,12 @@ import type { MembershipRole } from '../tenant/types';
 
 /** Keep a handoff on its record when the selected role can open that page. Server guards still authorize every request. */
 export function pilotDestination(pathname: string, role: MembershipRole): string {
-  if (!['OWNER', 'EXECUTIVE', 'REVIEWER'].includes(role)) return '/';
+  if (!['OWNER', 'EXECUTIVE', 'REVIEWER'].includes(role)) return '/workspace';
   if (
     role !== 'OWNER' &&
     (pathname === '/partnerships/import' || pathname.startsWith('/partnerships/import/'))
   )
-    return '/';
+    return '/workspace';
   const sections =
     role === 'REVIEWER'
       ? ['/partnerships', '/agreements', '/evidence-outcomes', '/audit']
@@ -21,5 +21,5 @@ export function pilotDestination(pathname: string, role: MembershipRole): string
         ];
   return sections.some((section) => pathname === section || pathname.startsWith(section + '/'))
     ? pathname
-    : '/';
+    : '/workspace';
 }

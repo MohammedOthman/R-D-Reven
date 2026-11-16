@@ -33,7 +33,7 @@ export function SignInForm() {
     setError(null);
     try {
       await signIn({ email: email.trim(), password });
-      router.replace('/');
+      router.replace('/workspace');
       router.refresh();
     } catch {
       // Deliberately generic — the API already avoids disclosing whether the

@@ -16,7 +16,7 @@ export default async function ResetPasswordPage({
 
   const user = await getCurrentUser();
   if (user) {
-    redirect({ href: '/', locale });
+    redirect({ href: '/workspace', locale });
   }
 
   return <ResetPasswordForm token={token} />;

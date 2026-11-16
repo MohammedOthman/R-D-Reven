@@ -9,7 +9,7 @@ export default async function SignUpPage({ params }: { params: Promise<{ locale:
 
   const user = await getCurrentUser();
   if (user) {
-    redirect({ href: '/', locale });
+    redirect({ href: '/workspace', locale });
   }
 
   return <SignUpForm />;
