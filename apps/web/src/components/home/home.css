@@ -1782,3 +1782,117 @@ html[lang='ar'] .hm-page--motion .hm-film:after {
     width: calc(100% + 40px);
   }
 }
+
+/* Ambient background motion for the sections without a WebGL scene. */
+.hm-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.hm-ambient canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.hm-why,
+.hm-system,
+.hm-teams {
+  position: relative;
+}
+.hm-why,
+.hm-system {
+  overflow: hidden;
+}
+.hm-why > .hm-container,
+.hm-system > .hm-container,
+.hm-cta > .hm-container,
+.hm-teams > :not(.hm-ambient) {
+  position: relative;
+  z-index: 1;
+}
+.hm-ambient--network,
+.hm-ambient--flow {
+  mask-image: linear-gradient(180deg, transparent, black 14%, black 86%, transparent);
+}
+.hm-ambient--flow {
+  inset-block-start: 34%;
+}
+/* The teams section is itself the 1200px rail, so its field bleeds to the viewport edges. */
+.hm-ambient--grid {
+  inset-inline: calc(50% - 50vw);
+  mask-image:
+    linear-gradient(180deg, transparent, black 18%, black 80%, transparent),
+    linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+  mask-composite: intersect;
+}
+.hm-cta:after {
+  display: none;
+}
+.hm-principle {
+  background: rgb(16 21 34 / 84%);
+  transition:
+    border-color 0.3s,
+    transform 0.3s;
+}
+.hm-principle:hover {
+  border-color: #5a74c4;
+  transform: translateY(-4px);
+}
+@media (min-width: 801px) {
+  .hm-principle {
+    background: rgb(16 21 34 / 62%);
+    backdrop-filter: blur(9px);
+  }
+}
+/* One signal crosses the four workflow rails in order, then the loop restarts. */
+.hm-workflow li:after {
+  content: '';
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d1e0ff, transparent) no-repeat;
+  background-size: 34% 100%;
+  background-position: -60% 0;
+  animation: hm-rail 6s linear infinite;
+  animation-delay: calc(var(--hm-step, 0) * 1.5s);
+}
+html[dir='rtl'] .hm-workflow li:after {
+  animation-name: hm-rail-rtl;
+}
+.hm-workflow li:before {
+  animation: hm-rail-dot 6s ease-out infinite;
+  animation-delay: calc(var(--hm-step, 0) * 1.5s);
+}
+@keyframes hm-rail {
+  0% {
+    background-position: -60% 0;
+  }
+  25%,
+  100% {
+    background-position: 160% 0;
+  }
+}
+@keyframes hm-rail-rtl {
+  0% {
+    background-position: 160% 0;
+  }
+  25%,
+  100% {
+    background-position: -60% 0;
+  }
+}
+@keyframes hm-rail-dot {
+  0% {
+    box-shadow: 0 0 0 0 #8da4ffb0;
+  }
+  18%,
+  100% {
+    box-shadow: 0 0 0 9px #8da4ff00;
+  }
+}
+.hm-page[data-motion='off'] *:before,
+.hm-page[data-motion='off'] *:after {
+  animation-play-state: paused !important;
+}

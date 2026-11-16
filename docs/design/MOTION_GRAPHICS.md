@@ -20,6 +20,17 @@ Three.js renders the moving network. GSAP owns heading/section choreography. Len
 
 Generated city images from the previous revision remain as complete static posters for no JavaScript, reduced motion, or WebGL failure. A still image is never described as the animated scene. The new scene uses original procedural 3D geometry and interface/data graphics; no reference assets or scene code are copied.
 
+## Ambient background layers
+
+The four sections without a WebGL scene carry a Canvas 2D layer (`AmbientMotion` and `create-ambient-field.ts`) drawn in the same blue palette:
+
+- Why Reven: drifting company nodes. A link appears when two nodes come within range, and a signal travels along it. Links to the pointer form within 230px.
+- Operating rhythm: wave lines with comets travelling in reading direction, reversed for Arabic. A CSS signal crosses the four workflow rails in order on a 6 second loop.
+- Teams: a dot matrix with two ripple origins and a pointer highlight.
+- Final CTA: the hub seen from above, with a rotating core, satellites on three orbits, and expanding rings.
+
+Each picture is a pure function of elapsed time, so pausing or reduced motion leaves a composed still frame. The layers share the WebGL gates: intersection, tab visibility, window focus, the pause control and `prefers-reduced-motion`, at 30 fps with pixel ratio capped at 1.5 (1.25 below 800px).
+
 ## Verification
 
 Before release, verify the initial viewport, dark scene, capability explorer, keyboard controls, Arabic RTL, mobile layouts, motion pause/resume, reduced motion, WebGL fallback, hidden-tab and offscreen suspension. Capture a short recording showing actual signals and rings moving. Check the production build and existing web tests, then verify the same behavior on CranL.
