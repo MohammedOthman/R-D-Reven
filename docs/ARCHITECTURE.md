@@ -52,7 +52,7 @@ evidence-outcomes → Contribution, evidence, outcome, verification — built (E
 revenue-share     → Revenue event, claim, eligibility, attribution, dispute — reserved
 sharing           → Grant, guest, field policy, external access — reserved
 integrations      → Connection, mapping, sync job, dead letter — reserved
-intelligence      → Metrics, derived signals, reports (read models only) — dashboard built (Command Center); other read models not yet
+intelligence      → Metrics, derived signals, reports (read models only) — dashboard built (Command Center); ecosystem-graph scoring spike (unwired, see docs/ecosystem-graph/); other read models not yet
 audit-operations  → Outbox, audit, exports, support tooling — audit built (Audit Timeline and Audit Search); outbox/exports/support tooling not yet
 ```
 
