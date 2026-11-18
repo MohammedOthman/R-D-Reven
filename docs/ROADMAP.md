@@ -362,6 +362,11 @@ CSV Import already established for onboarding.
   "final build instruction" (Table 68) names these explicitly as not
   before "the private control loop proves retained workflow, trusted
   evidence, safe sharing and paid customer value."
+- Research for the shared partnership graph lives in
+  [docs/ecosystem-graph/ECOSYSTEM_GRAPH.md](ecosystem-graph/ECOSYSTEM_GRAPH.md):
+  50 ecosystem-graph patterns, each tagged with the stage that may build it,
+  plus a pure-function scoring spike in
+  `apps/api/src/modules/intelligence/ecosystem-graph/` (no tables, no routes).
 
 ## Ground rules carried from the PRD (apply to every phase above)
 
