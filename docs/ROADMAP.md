@@ -352,6 +352,26 @@ CSV Import already established for onboarding.
     scope, not item 16's — they're presentation/collaboration surface
     built *on* the grant mechanism, not part of authorizing it.
 
+## Phase 7 — Ecosystem
+
+18. **Ecosystem graph** — the account graph from the `ACCOUNT_GRAPH.md`
+    research spike, made a product surface. **Accounts and graph built**;
+    import, contacts and the partner overlay are the next slices. A new
+    `Account` source table in `portfolio` (customer/prospect companies,
+    distinct from `Partner`), a derived `AccountSimilarityEdge` read model
+    in `intelligence`, and `/ecosystem` as a new top-level surface. The
+    graph scores shared rare tools and topics, industry overlap and
+    co-listing; stores per-edge component scores and evidence; sparsifies
+    to each account's strongest three edges; and adds deterministic
+    communities, PageRank and a stable grouped layout. The pilot can load
+    the 13 documented example accounts and 31 edges for demonstration
+    (`PILOT_AUTO_LOGIN`/non-production only); production tenants add
+    accounts manually until CSV import lands. Within-tenant only — the
+    shared/cross-tenant graph remains §18 "Later". Plain B2B copy standard
+    applied across the product (`docs/COPY.md`). See `docs/ARCHITECTURE.md`
+    for the module writeup and `docs/DECISIONS.md` for every interpretation
+    call.
+
 ## Later (v3 and beyond — explicitly not before the above, proof-gated per PRD §18)
 
 - CRM integration beyond the first connector — real `integrations` module

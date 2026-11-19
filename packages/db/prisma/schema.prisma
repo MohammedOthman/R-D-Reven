@@ -188,6 +188,9 @@ model User {
   sentInvitations                Invitation[]
   partnersCreated                Partner[]               @relation("PartnerCreatedBy")
   partnersUpdated                Partner[]               @relation("PartnerUpdatedBy")
+  accountsCreated                Account[]               @relation("AccountCreatedBy")
+  accountsUpdated                Account[]               @relation("AccountUpdatedBy")
+  accountPartnerLinksCreated     AccountPartnerLink[]    @relation("AccountPartnerLinkCreatedBy")
   partnershipsOwned              Partnership[]           @relation("PartnershipOwner")
   partnershipsSponsored          Partnership[]           @relation("PartnershipSponsor")
   partnershipsCreated            Partnership[]           @relation("PartnershipCreatedBy")
@@ -254,6 +257,10 @@ model Tenant {
   partnerships  Partnership[]
   importBatches ImportBatch[]
   initiatives   Initiative[]
+
+  accounts               Account[]
+  accountSimilarityEdges AccountSimilarityEdge[]
+  accountPartnerLinks    AccountPartnerLink[]
 
   @@map("tenants")
 }
@@ -346,7 +353,8 @@ model Partner {
   updatedById String
   updatedBy   User          @relation("PartnerUpdatedBy", fields: [updatedById], references: [id])
 
-  partnership Partnership?
+  partnership  Partnership?
+  accountLinks AccountPartnerLink[]
 
   // Light duplicate guard ahead of real dedup (CSV Import, Roadmap Phase 2
   // item 6, PRD FLOW-A) — two genuinely distinct partners sharing a legal
@@ -419,6 +427,114 @@ model Partnership {
 
   @@index([tenantId])
   @@map("partnerships")
+}
+
+enum AccountStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum AccountSource {
+  MANUAL
+  CSV
+  SEED
+}
+
+/**
+ * A company in the tenant's market — a customer, prospect, or a company a
+ * partner already works with. Partner is the company you have a governed
+ * relationship with; Account is the company you sell into. The same company
+ * can be both, which is what AccountPartnerLink records.
+ *
+ * Not a PRD §4.2 entity: this is the Ecosystem feature's own source table,
+ * built after the v1 roadmap. PRD §4.1 data rules still apply (tenant,
+ * audit columns, version, lifecycle status).
+ */
+model Account {
+  id               String        @id @default(uuid())
+  tenantId         String
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name             String
+  // Lowercased, www-stripped identity key. Null when the source has no domain.
+  normalizedDomain String?
+  domains          String[]      @default([])
+  headcount        Int?
+  hqCity           String?
+  hqCountry        String?
+  // NAICS codes, technologies, positioning terms, and source lists — the
+  // four feature families the similarity graph compares.
+  industryCodes    String[]      @default([])
+  technologies     String[]      @default([])
+  keywords         String[]      @default([])
+  lists            String[]      @default([])
+  parentName       String?
+  parentDomain     String?
+  revenue          Decimal?      @db.Decimal(18, 4)
+  source           AccountSource @default(MANUAL)
+  status           AccountStatus @default(ACTIVE)
+  version          Int           @default(1)
+  createdAt        DateTime      @default(now())
+  createdById      String
+  createdBy        User          @relation("AccountCreatedBy", fields: [createdById], references: [id])
+  updatedAt        DateTime      @updatedAt
+  updatedById      String
+  updatedBy        User          @relation("AccountUpdatedBy", fields: [updatedById], references: [id])
+
+  partnerLinks AccountPartnerLink[]
+  sourceEdges  AccountSimilarityEdge[] @relation("AccountEdgeSource")
+  targetEdges  AccountSimilarityEdge[] @relation("AccountEdgeTarget")
+
+  @@unique([tenantId, normalizedDomain])
+  @@index([tenantId])
+  @@map("accounts")
+}
+
+/**
+ * Derived read model (intelligence owns it): one row per scored account pair.
+ * Components and evidence are stored so the UI can always show why two
+ * accounts are connected — PRD §1.4's "no black-box recommendations".
+ */
+model AccountSimilarityEdge {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceAccountId    String
+  sourceAccount      Account  @relation("AccountEdgeSource", fields: [sourceAccountId], references: [id], onDelete: Cascade)
+  targetAccountId    String
+  targetAccount      Account  @relation("AccountEdgeTarget", fields: [targetAccountId], references: [id], onDelete: Cascade)
+  score              Float
+  // [{ family, score, evidence[] }] — family is technologies | keywords | industries | lists.
+  components         Json
+  calculationVersion String
+  refreshedAt        DateTime @default(now())
+
+  @@unique([tenantId, sourceAccountId, targetAccountId])
+  @@index([tenantId])
+  @@map("account_similarity_edges")
+}
+
+/**
+ * Which partners already sit around an account. Free-text `relationship`
+ * until a taxonomy exists (the same ADM-05-not-built reason `segment` and
+ * `motion` are free text).
+ */
+model AccountPartnerLink {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  accountId    String
+  account      Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  partnerId    String
+  partner      Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  relationship String?
+  source       String?
+  createdAt    DateTime @default(now())
+  createdById  String
+  createdBy    User     @relation("AccountPartnerLinkCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([tenantId, accountId, partnerId])
+  @@index([tenantId])
+  @@map("account_partner_links")
 }
 
 enum ImportBatchStatus {

@@ -6,6 +6,8 @@ import { PartnershipsListController } from './partnerships/partnerships-list.con
 import { PartnershipsService } from './partnerships/partnerships.service';
 import { ImportsController } from './imports/imports.controller';
 import { ImportsService } from './imports/imports.service';
+import { AccountsController } from './accounts/accounts.controller';
+import { AccountsService } from './accounts/accounts.service';
 import { IdentityTenantModule } from '../identity-tenant/identity-tenant.module';
 
 @Module({
@@ -15,7 +17,8 @@ import { IdentityTenantModule } from '../identity-tenant/identity-tenant.module'
     PartnershipsController,
     PartnershipsListController,
     ImportsController,
+    AccountsController,
   ],
-  providers: [PartnersService, PartnershipsService, ImportsService],
+  providers: [PartnersService, PartnershipsService, ImportsService, AccountsService],
 })
 export class PortfolioModule {}

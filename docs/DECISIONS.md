@@ -1201,3 +1201,49 @@ approvalStatus` (`DRAFT | APPROVED`) exists; the parent carries no
   feature has the same issue. Worth remembering for every future
   translated string: literal `{}` needs ICU escaping (single-quoting) or,
   more simply, rewording to avoid it.
+
+## Ecosystem graph — scope and interpretation calls
+
+- **A new top-level "Ecosystem" surface was added rather than folding the
+  graph into Partnerships.** PRD §3.1 places partner profiles inside the
+  existing Partnerships surface, but a graph needs its own canvas, filters
+  and a shareable account view. Table 10 does not name "Ecosystem"; this
+  is a post-v1 product addition, documented here rather than hidden as a
+  reinterpretation of an existing row. The nav item is hidden for Guest,
+  matching "Portfolio read".
+- **`Account` is not `Partner`.** The MD's ontology separates the company
+  you sell into from the company you have a governed relationship with.
+  Reusing `Partner` would have made every prospect a partner and every
+  account graph a partner graph. `Account` is a new tenant-owned table in
+  `portfolio` (PRD §4.1 fields); `AccountPartnerLink` (free-text
+  `relationship`, no invented enum) is the bridge for the later overlay.
+- **Within-tenant only.** PRD §18 defers the shared partnership graph,
+  matchmaking and benchmarking to "Later". This feature compares accounts
+  inside one tenant from data that tenant imported or entered. There is no
+  cross-tenant matching, no PSI, no partner data sharing. The
+  `overlapMatrix`/HMAC helpers from the research spike are deliberately
+  not wired into this slice.
+- **Weights are fixed to the documented method** (0.40 tools / 0.35 topics
+  / 0.15 industry / 0.10 co-listing). "Learned weights from outcomes" is
+  the §18-later item; it needs Revenue Event/Claim data that does not
+  exist yet. Every stored edge carries the weights and calculation version
+  it was built with, so a later change never silently rewrites history.
+- **The pilot seed stores the documented edges verbatim.** The source
+  published account-level results and the 31 displayed edges, not each
+  account's full technology list (and the Apollo export is deliberately
+  excluded). Recomputing from reconstructed feature lists would have
+  invented numbers. Seeded edges therefore carry
+  `seed/account-graph/2026-11` and are replaced the moment a real rebuild
+  runs. Seeding is restricted to `PILOT_AUTO_LOGIN=true` or non-production
+  and returns 404 otherwise; the authenticated app has no seed button.
+- **No graph database.** Tenant-sized graphs (tens to low thousands) fit
+  in Postgres arrays plus a derived edge table; Neo4j/pgvector would add
+  operational surface before the graph has proven its value. The graph
+  route computes on read when no stored edges exist and is guarded for
+  synchronous builds; a background job is a later concern, not a silent
+  omission.
+- **Plain B2B copy is now a product standard, not a one-off.** See
+  `docs/COPY.md`. State-machine vocabulary ("available transitions",
+  "disposition", "governed relationship", "immutable", "snapshot") was
+  replaced with the words a partnership lead uses. The API and docs keep
+  the precise terms; only the UI is plain.

@@ -14,6 +14,7 @@ import {
   LogOut,
   Building2,
   ScrollText,
+  Network,
   X,
 } from 'lucide-react';
 import {
@@ -84,6 +85,12 @@ export function AppShell({
             label: t('nav.partnerships'),
             icon: <Handshake className="size-[18px]" />,
             href: '/partnerships',
+          },
+          {
+            id: 'ecosystem',
+            label: t('nav.ecosystem'),
+            icon: <Network className="size-[18px]" />,
+            href: '/ecosystem',
           },
         ]
       : []),

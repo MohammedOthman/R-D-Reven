@@ -45,14 +45,14 @@ Command Center dashboard built (see `docs/ROADMAP.md`):
 
 ```
 identity-tenant   → Tenant, membership, role, auth policy, support access — built (Authentication, Tenant/Organization, RBAC)
-portfolio         → Partner, partnership, import, program, taxonomy, health — Partner, Partnership and CSV Import built; program/taxonomy/health-formula not yet
+portfolio         → Partner, partnership, import, program, taxonomy, health — Partner, Partnership, CSV Import and Accounts built; program/taxonomy/health-formula not yet
 execution         → Workspace, plan, initiative, milestone, action, review, decision — Initiative/Milestone/Action and Review/Decision built; workspace/plan not yet
 commercial-governance → Agreement, obligation, rule version — reserved
 evidence-outcomes → Contribution, evidence, outcome, verification — built (Evidence, Outcome, and Verification)
 revenue-share     → Revenue event, claim, eligibility, attribution, dispute — reserved
 sharing           → Grant, guest, field policy, external access — reserved
 integrations      → Connection, mapping, sync job, dead letter — reserved
-intelligence      → Metrics, derived signals, reports (read models only) — dashboard built (Command Center); other read models not yet
+intelligence      → Metrics, derived signals, reports (read models only) — Command Center and the Ecosystem graph built; other read models not yet
 audit-operations  → Outbox, audit, exports, support tooling — audit built (Audit Timeline and Audit Search); outbox/exports/support tooling not yet
 ```
 
@@ -741,6 +741,61 @@ every module those already belong to keeps owning them.
   `ForbiddenState` every other Guest-denied route uses, since `/` is every
   role's default post-sign-in destination, not a link they chose to
   follow.
+
+### Ecosystem graph (`modules/intelligence/ecosystem-graph/`, `Account` in `modules/portfolio/accounts`)
+
+The `Ecosystem` surface at `/ecosystem` — the account graph from the
+`ACCOUNT_GRAPH.md` research spike, wired into the product for the first
+time. Two layers: `Account` is the company you sell into (a customer,
+prospect, or a company a partner already works with); `Partner` is the
+company you have a governed relationship with. They are separate tables
+because they answer different questions, and a company can be both.
+
+- **Source vs. read model.** `Account` and `AccountPartnerLink` are
+  tenant-owned source tables; `modules/portfolio/accounts/` owns their
+  writes (PRD §4.1 fields including `version` and lifecycle `status`).
+  `AccountSimilarityEdge` is a derived read model owned by
+  `intelligence`; it stores each edge's component scores and evidence, so
+  the UI can always explain a connection (PRD §1.4's "no black-box
+  recommendations"). There is no graph database. A newly added account is
+  connected on the graph's next read (or by an explicit rebuild), so the
+  portfolio write path never calls into the read model.
+- **Scoring.** `coupling.ts` implements IDF-weighted bibliographic
+  coupling over tools and topics, Jaccard over NAICS codes, and the
+  co-listing signal (a shared list only counts when it does not contain
+  every account). Weights are the documented 0.40 / 0.35 / 0.15 / 0.10.
+  `graph.ts` adds top-k sparsification (k = 3), greedy-modularity
+  communities (Louvain's local-moving phase — plain label propagation
+  collapses a connected graph into one group), weighted PageRank and a
+  deterministic grouped layout. Every derived result carries `calculationVersion`, weights and
+  `refreshedAt`.
+- **Stored vs. computed.** The graph route serves stored edges when they
+  exist; otherwise it computes them from account features and sparsifies
+  on read (tenant-sized datasets only). `POST .../ecosystem/rebuild`
+  recomputes and replaces the stored edges for Owner/Admin.
+- **The pilot seed.** `example-data.ts` transcribes the 13 accounts and
+  the 31 documented edges from `ACCOUNT_GRAPH.md`. The source published
+  account-level results, not each account's full feature list, so the
+  seed stores the documented edges verbatim with
+  `calculationVersion = seed/account-graph/2026-11`. It is available only
+  when `PILOT_AUTO_LOGIN=true` or outside production
+  (`POST .../ecosystem/seed-example`), and it is idempotent. The
+  authenticated production app never exposes it.
+- **RBAC.** Read follows "Portfolio read" (Owner/Admin/Executive/Manager/
+  Reviewer; Guest excluded). Manual account creation is
+  Owner/Admin/Manager; seeding and rebuild are Owner/Admin. No cross-tenant
+  matching, sharing or benchmarking: that is the §18 "Later" scope, not
+  this feature.
+- **Web.** `/ecosystem` renders an SVG map (cluster halos, node size by
+  headcount, edge width by score, pan/zoom, hover/selection), a
+  plain-language evidence panel, group filters, and a table equivalent
+  for keyboard and screen-reader users. `/ecosystem/accounts/[id]` is the
+  shareable detail page. The copy standard lives in `docs/COPY.md`; the
+  UI never exposes IDF, cosine, PageRank or "node".
+- **Not built yet:** CSV import (Apollo-shaped), contacts/personas, and the
+  partner-supplied-list overlay (the Crossbeam-style account mapping).
+  Those are the next reviewable slices; schema is deliberately ready for
+  them (`AccountPartnerLink` exists, `AccountContact` does not yet).
 
 ### Authorized CSV Export (`common/csv.ts`, plus one route per exportable list)
 

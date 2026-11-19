@@ -2,6 +2,7 @@
 export function activeNavIdFromPathname(pathname: string): string {
   const sections = [
     'partnerships',
+    'ecosystem',
     'initiatives',
     'reviews',
     'agreements',
