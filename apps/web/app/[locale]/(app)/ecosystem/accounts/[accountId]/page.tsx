@@ -1,20 +1,37 @@
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import { Card, CardContent, CardHeader, CardTitle, EmptyState, ForbiddenState } from '@revn/ui';
-import { ArrowLeft, Building2 } from 'lucide-react';
+import { EmptyState, ForbiddenState } from '@revn/ui';
+import { ArrowLeft, ArrowUpRight, Building2, Handshake } from 'lucide-react';
 import { Link } from '@/src/i18n/navigation';
 import { getCurrentTenant } from '@/src/lib/tenant/session';
 import { getEcosystemAccount } from '@/src/lib/ecosystem/session';
+import type { FeatureFamily } from '@/src/lib/ecosystem/types';
+import {
+  FEATURE_FAMILIES,
+  companyMonogram,
+  groupTone,
+} from '@/src/components/ecosystem/ecosystem-visuals';
+import '../../ecosystem.css';
 
 const READ_ROLES = ['OWNER', 'ADMIN', 'EXECUTIVE', 'MANAGER', 'REVIEWER'];
 
+function familyLabelKey(family: FeatureFamily): 'tools' | 'topics' | 'industry' | 'lists' {
+  switch (family) {
+    case 'technologies':
+      return 'tools';
+    case 'keywords':
+      return 'topics';
+    case 'industries':
+      return 'industry';
+    case 'lists':
+      return 'lists';
+  }
+}
+
 function Chips({ values }: { values: string[] }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="eco-chips">
       {values.map((value) => (
-        <span
-          key={value}
-          className="bg-canvas text-muted-body rounded-pill border border-[var(--border-subtle)] px-2 py-0.5 text-[11px]"
-        >
+        <span key={value} className="eco-chip">
           {value}
         </span>
       ))}
@@ -54,155 +71,260 @@ export default async function EcosystemAccountPage({
   }
 
   const t = await getTranslations('ecosystem');
-  const a = (key: string) => t(`account.${key}`);
+  const a = await getTranslations('ecosystem.account');
   const partnershipT = await getTranslations('partnerships.relationship');
+  const number = new Intl.NumberFormat(locale);
   const account = detail.account;
 
+  const tone = groupTone(detail.group?.id ?? 0);
+  const location = [account.hqCity, account.hqCountry].filter(Boolean).join(', ');
+  const teamSize = account.headcount ? number.format(account.headcount) : '';
+  const domainsAndRevenue = [account.domains.join(', '), account.revenue]
+    .filter(Boolean)
+    .join(' · ');
+
+  const signalSections = [
+    {
+      key: 'technologies',
+      label: t('tools'),
+      values: account.technologies,
+      emptyText: a('missingTechnologies'),
+    },
+    {
+      key: 'keywords',
+      label: t('topics'),
+      values: account.keywords,
+      emptyText: a('missingKeywords'),
+    },
+    {
+      key: 'industries',
+      label: t('industry'),
+      values: account.industryCodes,
+      emptyText: a('missingIndustries'),
+    },
+    {
+      key: 'lists',
+      label: t('lists'),
+      values: account.lists,
+      emptyText: a('missingLists'),
+    },
+  ] as const;
+
+  const filledSignals = signalSections.filter((section) => section.values.length > 0).length;
+  const completenessPct = Math.round((filledSignals / signalSections.length) * 100);
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <Link
-          href="/ecosystem"
-          className="text-muted-body hover:text-ink inline-flex items-center gap-1.5 text-sm font-medium"
-        >
-          <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
-          {a('back')}
-        </Link>
-        <div className="flex flex-col gap-2">
-          <p className="text-muted-body text-[13px] font-medium">{a('eyebrow')}</p>
-          <h1 className="font-display text-ink text-2xl font-bold tracking-[var(--tracking-display)] sm:text-3xl">
-            {account.name}
-          </h1>
-          <p className="font-body text-muted-body max-w-2xl text-sm leading-relaxed">
-            {a('description')}
+    <div className="eco-page">
+      {/* Matching Deep Navy Hero + Inline Key-Facts Strip */}
+      <section className="eco-profile-hero" aria-labelledby="account-profile-heading">
+        <div className="flex flex-col gap-4">
+          <Link href="/ecosystem" className="eco-back-link">
+            <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+            {a('back')}
+          </Link>
+
+          <p className="eco-kicker">
+            <span className="eco-kicker-bar" aria-hidden="true" />
+            {a('eyebrow')}
           </p>
+
+          <div className="eco-profile-headline">
+            <span
+              className="eco-monogram-badge"
+              style={{ backgroundColor: tone.fill }}
+              aria-hidden="true"
+            >
+              {companyMonogram(account.name)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 id="account-profile-heading">{account.name}</h1>
+                {detail.group && (
+                  <span className="eco-hub-badge eco-hub-badge--on-navy">{detail.group.label}</span>
+                )}
+              </div>
+              <p className="eco-hero-lead mt-2">{a('description')}</p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{a('detailsTitle')}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <Detail
-                label={a('hq')}
-                value={[account.hqCity, account.hqCountry].filter(Boolean).join(', ')}
-                empty={a('notSet')}
-              />
-              <Detail label={a('parent')} value={account.parentName ?? ''} empty={a('notSet')} />
-              <Detail
-                label={t('employeesHeader')}
-                value={
-                  account.headcount ? new Intl.NumberFormat(locale).format(account.headcount) : ''
-                }
-                empty={a('notSet')}
-              />
-              <Detail label={a('revenue')} value={account.revenue ?? ''} empty={a('notSet')} />
-              <Detail label={a('domains')} value={account.domains.join(', ')} empty={a('notSet')} />
-              <Detail label={t('group')} value={detail.group?.label ?? ''} empty={a('notSet')} />
-            </CardContent>
-          </Card>
+        {/* Inline Key-Facts Strip */}
+        <dl className="eco-facts-strip" aria-label={a('detailsTitle')}>
+          <Fact label={a('hq')} value={location} empty={a('notSet')} />
+          <Fact label={t('employeesHeader')} value={teamSize} empty={a('notSet')} />
+          <Fact label={t('group')} value={detail.group?.label ?? ''} empty={a('notSet')} />
+          <Fact label={a('parent')} value={account.parentName ?? ''} empty={a('notSet')} />
+          <Fact
+            label={`${a('domains')} / ${a('revenue')}`}
+            value={domainsAndRevenue}
+            empty={a('notSet')}
+          />
+        </dl>
+      </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{a('closestTitle')}</CardTitle>
-              <p className="text-muted-body text-sm">{a('closestDescription')}</p>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+      <div className="eco-profile-grid">
+        {/* Left Column: Closest Matches */}
+        <div className="eco-profile-col">
+          <section className="eco-panel" aria-labelledby="profile-closest-heading">
+            <div className="eco-panel-head">
+              <h2 id="profile-closest-heading">{a('closestTitle')}</h2>
+              <p>{a('closestDescription')}</p>
+            </div>
+            <div className="eco-panel-body">
               {detail.neighbours.length === 0 ? (
-                <div className="flex flex-col gap-1">
-                  <p className="text-ink text-sm font-medium">{a('noNeighboursTitle')}</p>
-                  <p className="text-muted-body text-xs">{a('noNeighboursDescription')}</p>
+                <div className="rounded-xl border border-dashed border-[var(--border-default)] p-5">
+                  <p className="text-ink text-sm font-semibold">{a('noNeighboursTitle')}</p>
+                  <p className="text-muted-body mt-1 text-xs">{a('noNeighboursDescription')}</p>
                 </div>
               ) : (
                 detail.neighbours.map((neighbour) => {
-                  const tools =
-                    neighbour.components.find((c) => c.family === 'technologies')?.evidence ?? [];
-                  const topics =
-                    neighbour.components.find((c) => c.family === 'keywords')?.evidence ?? [];
+                  const matchPct = Math.round(neighbour.score * 100);
+                  const byFamily = new Map(neighbour.components.map((c) => [c.family, c]));
+                  const evidenceFamilies = FEATURE_FAMILIES.map((family) =>
+                    byFamily.get(family),
+                  ).filter(
+                    (component): component is NonNullable<typeof component> =>
+                      component !== undefined &&
+                      (component.score > 0 || component.evidence.length > 0),
+                  );
+
                   return (
-                    <div
-                      key={neighbour.id}
-                      className="flex flex-col gap-2 border-b border-[var(--border-subtle)] pb-4 last:border-0 last:pb-0"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <Link
-                          href={`/ecosystem/accounts/${neighbour.id}`}
-                          className="text-ink text-sm font-semibold hover:underline"
-                        >
-                          {neighbour.name}
-                        </Link>
-                        <span className="text-muted-body text-xs tabular-nums">
-                          {t('match', { score: Math.round(neighbour.score * 100) })}
-                        </span>
+                    <article key={neighbour.id} className="eco-profile-match">
+                      <div className="eco-profile-match-head">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="eco-monogram-badge eco-monogram-badge--sm"
+                            style={{ backgroundColor: '#2C5BFF' }}
+                            aria-hidden="true"
+                          >
+                            {companyMonogram(neighbour.name)}
+                          </span>
+                          <Link
+                            href={`/ecosystem/accounts/${neighbour.id}`}
+                            className="eco-profile-match-link inline-flex items-center gap-1"
+                          >
+                            {neighbour.name}
+                            <ArrowUpRight
+                              className="size-3.5 rtl:-scale-x-100"
+                              aria-hidden="true"
+                            />
+                          </Link>
+                        </div>
+                        <span className="eco-match-pct">{t('match', { score: matchPct })}</span>
                       </div>
-                      {tools.length > 0 && (
-                        <div className="flex flex-col gap-1">
-                          <p className="text-muted-caption text-[11px]">{t('tools')}</p>
-                          <Chips values={tools} />
+
+                      <div className="eco-bar-track" aria-hidden="true">
+                        <div
+                          className="eco-bar-fill"
+                          style={{ width: `${Math.max(4, matchPct)}%` }}
+                        />
+                      </div>
+
+                      {evidenceFamilies.length > 0 && (
+                        <div className="grid gap-3 pt-1 sm:grid-cols-2">
+                          {evidenceFamilies.map((component) => {
+                            const signalPct = Math.round(component.score * 100);
+                            return (
+                              <div key={component.family} className="eco-signal-row">
+                                <div className="eco-signal-row-head">
+                                  <span>{t(familyLabelKey(component.family))}</span>
+                                  <span className="eco-signal-row-pct">
+                                    {t('signalScore', { score: signalPct })}
+                                  </span>
+                                </div>
+                                {component.evidence.length > 0 && (
+                                  <Chips values={component.evidence} />
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
-                      {topics.length > 0 && (
-                        <div className="flex flex-col gap-1">
-                          <p className="text-muted-caption text-[11px]">{t('topics')}</p>
-                          <Chips values={topics} />
-                        </div>
-                      )}
-                    </div>
+                    </article>
                   );
                 })
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{a('partnersTitle')}</CardTitle>
-            </CardHeader>
-            <CardContent>
+        {/* Right Column: Partners Already Here + Profile Signals */}
+        <div className="eco-profile-col">
+          <section className="eco-panel" aria-labelledby="profile-partners-heading">
+            <div className="eco-panel-head">
+              <h2 id="profile-partners-heading">{a('partnersTitle')}</h2>
+            </div>
+            <div className="eco-panel-body">
               {detail.partners.length === 0 ? (
-                <p className="text-muted-body text-sm">{a('partnersEmpty')}</p>
+                <div className="flex items-center gap-3 rounded-xl border border-dashed border-[var(--border-default)] p-4">
+                  <Handshake className="text-muted-tertiary size-5 shrink-0" aria-hidden="true" />
+                  <p className="text-muted-body text-sm">{a('partnersEmpty')}</p>
+                </div>
               ) : (
-                <ul className="flex flex-col gap-3">
+                <ul className="eco-partner-list">
                   {detail.partners.map((partner) => (
-                    <li key={partner.partnerId} className="flex flex-col gap-1">
-                      <p className="text-ink text-sm font-medium">{partner.name}</p>
-                      <p className="text-muted-body text-xs">
+                    <li key={partner.partnerId} className="eco-partner-row">
+                      <div className="min-w-0">
+                        <p className="eco-partner-name">{partner.name}</p>
+                        <p className="eco-partner-meta">
+                          {[
+                            partner.health ? partnershipT(`health.${partner.health}`) : null,
+                            partner.relationship,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ') || a('notSet')}
+                        </p>
+                      </div>
+                      <span className="eco-partner-tag">
                         {partner.stage ? partnershipT(`stage.${partner.stage}`) : a('notSet')}
-                        {partner.health ? ` · ${partnershipT(`health.${partner.health}`)}` : ''}
-                        {partner.relationship ? ` · ${partner.relationship}` : ''}
-                      </p>
+                      </span>
                     </li>
                   ))}
                 </ul>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{a('dataQualityTitle')}</CardTitle>
-              <p className="text-muted-body text-sm">{a('dataQualityDescription')}</p>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <Chips values={account.technologies} />
-              {account.technologies.length === 0 && (
-                <p className="text-muted-body text-xs">{a('missingTechnologies')}</p>
-              )}
-              <Chips values={account.keywords} />
-              {account.keywords.length === 0 && (
-                <p className="text-muted-body text-xs">{a('missingKeywords')}</p>
-              )}
-              <Chips values={account.industryCodes} />
-              {account.industryCodes.length === 0 && (
-                <p className="text-muted-body text-xs">{a('missingIndustries')}</p>
-              )}
-            </CardContent>
-          </Card>
+          <section className="eco-panel" aria-labelledby="profile-signals-heading">
+            <div className="eco-panel-head">
+              <h2 id="profile-signals-heading">{a('dataQualityTitle')}</h2>
+              <p>{a('dataQualityDescription')}</p>
+            </div>
+            <div className="eco-panel-body">
+              <div className="eco-completeness">
+                <div className="eco-completeness-head">
+                  <span>
+                    {a('signalsCompleteness', {
+                      filled: filledSignals,
+                      total: signalSections.length,
+                    })}
+                  </span>
+                  <span className="eco-match-pct">{completenessPct}%</span>
+                </div>
+                <div className="eco-bar-track" aria-hidden="true">
+                  <div className="eco-bar-fill" style={{ width: `${completenessPct}%` }} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {signalSections.map((section) => (
+                  <div key={section.key} className="eco-signal-group">
+                    <div className="eco-signal-group-head">
+                      <p className="eco-section-label">{section.label}</p>
+                      <span className="eco-signal-row-pct">
+                        {number.format(section.values.length)}
+                      </span>
+                    </div>
+                    {section.values.length > 0 ? (
+                      <Chips values={section.values} />
+                    ) : (
+                      <p className="eco-signal-empty">{section.emptyText}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
           <p className="text-muted-caption text-xs">{t('note')}</p>
         </div>
@@ -211,11 +333,11 @@ export default async function EcosystemAccountPage({
   );
 }
 
-function Detail({ label, value, empty }: { label: string; value: string; empty: string }) {
+function Fact({ label, value, empty }: { label: string; value: string; empty: string }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <p className="text-muted-caption text-[11px] font-medium">{label}</p>
-      <p className="text-ink text-sm">{value || empty}</p>
+    <div className="eco-fact-item">
+      <dt className="eco-fact-label">{label}</dt>
+      <dd className={`eco-fact-value ${value ? '' : 'eco-fact-value--muted'}`}>{value || empty}</dd>
     </div>
   );
 }

@@ -3,11 +3,19 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Network, Plus, Users } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Clock,
+  Crosshair,
+  Network,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import {
   Button,
-  Card,
-  CardContent,
   Dialog,
   DialogClose,
   DialogContent,
@@ -18,21 +26,30 @@ import {
   EmptyState,
   FormField,
   Input,
-  PageHeader,
-  Pill,
   SearchInput,
   Textarea,
   useToast,
 } from '@revn/ui';
 import { Link, useRouter } from '@/src/i18n/navigation';
 import { ApiError } from '@/src/lib/api/error';
-import { createAccount, seedEcosystemExample } from '@/src/lib/ecosystem/client';
-import type { EcosystemGraph, GraphNode } from '@/src/lib/ecosystem/types';
+import {
+  createAccount,
+  rebuildEcosystemGraph,
+  seedEcosystemExample,
+} from '@/src/lib/ecosystem/client';
+import type { EcosystemGraph, FeatureFamily, GraphNode } from '@/src/lib/ecosystem/types';
 import type { MembershipRole } from '@/src/lib/tenant/types';
 import { EcosystemGraphCanvas } from '@/src/components/ecosystem/EcosystemGraphCanvas';
+import {
+  FEATURE_FAMILIES,
+  companyMonogram,
+  computeHubIds,
+  groupTone,
+} from '@/src/components/ecosystem/ecosystem-visuals';
+import './ecosystem.css';
 
 const WRITE_ROLES: MembershipRole[] = ['OWNER', 'ADMIN', 'MANAGER'];
-const SEED_ROLES: MembershipRole[] = ['OWNER', 'ADMIN'];
+const ADMIN_ROLES: MembershipRole[] = ['OWNER', 'ADMIN'];
 
 type Neighbour = {
   node: GraphNode;
@@ -51,8 +68,17 @@ function splitList(value: string): string[] {
   ];
 }
 
-function evidenceFor(neighbour: Neighbour | undefined, family: string): string[] {
-  return neighbour?.components.find((component) => component.family === family)?.evidence ?? [];
+function familyLabelKey(family: FeatureFamily): 'tools' | 'topics' | 'industry' | 'lists' {
+  switch (family) {
+    case 'technologies':
+      return 'tools';
+    case 'keywords':
+      return 'topics';
+    case 'industries':
+      return 'industry';
+    case 'lists':
+      return 'lists';
+  }
 }
 
 export function EcosystemContent({
@@ -71,17 +97,30 @@ export function EcosystemContent({
   const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const router = useRouter();
   const { toast } = useToast();
+
   const canWrite = WRITE_ROLES.includes(currentRole);
-  const canSeed = pilotMode && SEED_ROLES.includes(currentRole);
+  const canAdmin = ADMIN_ROLES.includes(currentRole);
+  const canSeed = pilotMode && canAdmin;
 
   const [selectedId, setSelectedId] = useState<string | null>(graph.nodes[0]?.id ?? null);
+  const [comparedId, setComparedId] = useState<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState<{ id: string; nonce: number } | null>(null);
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState<number | 'all'>('all');
   const [seeding, setSeeding] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
-  const nodeById = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph]);
-  const groupById = useMemo(() => new Map(graph.groups.map((entry) => [entry.id, entry])), [graph]);
+  const nodeById = useMemo(
+    () => new Map(graph.nodes.map((node) => [node.id, node])),
+    [graph.nodes],
+  );
+  const groupById = useMemo(
+    () => new Map(graph.groups.map((entry) => [entry.id, entry])),
+    [graph.groups],
+  );
+  const hubIds = useMemo(() => computeHubIds(graph.nodes), [graph.nodes]);
+
   const neighboursByNode = useMemo(() => {
     const map = new Map<string, Neighbour[]>();
     for (const edge of graph.edges) {
@@ -95,21 +134,82 @@ export function EcosystemContent({
       targetList.push({ node: source, score: edge.score, components: edge.components });
       map.set(edge.target, targetList);
     }
-    for (const list of map.values()) list.sort((a, b) => b.score - a.score);
+    for (const list of map.values()) {
+      list.sort((a, b) => b.score - a.score || a.node.name.localeCompare(b.node.name));
+    }
     return map;
-  }, [graph, nodeById]);
+  }, [graph.edges, nodeById]);
 
-  const selected = selectedId ? (nodeById.get(selectedId) ?? null) : null;
-  const selectedNeighbours = selectedId ? (neighboursByNode.get(selectedId) ?? []) : [];
-  const closest = selectedNeighbours[0];
+  // Selection fallback: auto-select first company if workspace was previously empty or selection disappeared
+  const effectiveSelectedId = useMemo(() => {
+    if (selectedId && nodeById.has(selectedId)) return selectedId;
+    return graph.nodes[0]?.id ?? null;
+  }, [selectedId, nodeById, graph.nodes]);
+
+  // Synced filter across map & directory table: search by company name, city, or group label + group pill
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredNodes = useMemo(() => {
+    return graph.nodes.filter((node) => {
+      if (group !== 'all' && node.group !== group) return false;
+      if (!normalizedQuery) return true;
+      const groupLabel = groupById.get(node.group)?.label ?? '';
+      return (
+        node.name.toLowerCase().includes(normalizedQuery) ||
+        (node.hqCity?.toLowerCase().includes(normalizedQuery) ?? false) ||
+        (node.hqCountry?.toLowerCase().includes(normalizedQuery) ?? false) ||
+        groupLabel.toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [graph.nodes, group, normalizedQuery, groupById]);
+
+  const filteredIds = useMemo(() => new Set(filteredNodes.map((node) => node.id)), [filteredNodes]);
+
+  const filtersActive = normalizedQuery.length > 0 || group !== 'all';
+
+  const selected = effectiveSelectedId ? (nodeById.get(effectiveSelectedId) ?? null) : null;
+  const selectedNeighbours = useMemo(
+    () => (effectiveSelectedId ? (neighboursByNode.get(effectiveSelectedId) ?? []) : []),
+    [effectiveSelectedId, neighboursByNode],
+  );
+
+  const comparedNeighbour = useMemo(() => {
+    if (selectedNeighbours.length === 0) return null;
+    if (comparedId) {
+      const explicit = selectedNeighbours.find((item) => item.node.id === comparedId);
+      if (explicit) return explicit;
+    }
+    return selectedNeighbours[0] ?? null;
+  }, [selectedNeighbours, comparedId]);
+
   const selectedGroup = selected ? (groupById.get(selected.group) ?? null) : null;
-  const wellConnected =
-    selected !== null &&
-    graph.nodes.length > 1 &&
-    selected.centrality >=
-      [...graph.nodes].sort((a, b) => a.centrality - b.centrality)[
-        Math.floor(graph.nodes.length * 0.75)
-      ]!.centrality;
+  const isKeyHub = selected !== null && hubIds.has(selected.id);
+
+  const handleSelectCompany = (id: string) => {
+    setSelectedId(id);
+    setComparedId(null);
+  };
+
+  const handleFocusCompany = (id: string) => {
+    setSelectedId(id);
+    setComparedId(null);
+    setFocusRequest((prev) => ({ id, nonce: (prev?.nonce ?? 0) + 1 }));
+  };
+
+  const handleCompareEdge = (sourceId: string, targetId: string) => {
+    if (effectiveSelectedId === sourceId) {
+      setComparedId(targetId);
+    } else if (effectiveSelectedId === targetId) {
+      setComparedId(sourceId);
+    } else {
+      setSelectedId(sourceId);
+      setComparedId(targetId);
+    }
+  };
+
+  const handleResetFilters = () => {
+    setQuery('');
+    setGroup('all');
+  };
 
   const handleSeed = async () => {
     setSeeding(true);
@@ -134,33 +234,121 @@ export function EcosystemContent({
     }
   };
 
-  const updatedAt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
-    new Date(graph.provenance.refreshedAt),
+  const handleRebuild = async () => {
+    setRebuilding(true);
+    try {
+      const { result } = await rebuildEcosystemGraph(tenantId);
+      toast({
+        title: t('refreshSuccessTitle'),
+        description: t('refreshSuccessDescription', {
+          accounts: result.accounts,
+          edges: result.edges,
+        }),
+      });
+      router.refresh();
+    } catch {
+      toast({
+        title: t('refreshErrorTitle'),
+        description: t('refreshErrorDescription'),
+        variant: 'error',
+      });
+    } finally {
+      setRebuilding(false);
+    }
+  };
+
+  const updatedAt = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
+        new Date(graph.provenance.refreshedAt),
+      ),
+    [locale, graph.provenance.refreshedAt],
   );
 
+  const comparedSignals = useMemo(() => {
+    if (!comparedNeighbour) return [];
+    const byFamily = new Map(comparedNeighbour.components.map((c) => [c.family, c]));
+    return FEATURE_FAMILIES.map((family) => byFamily.get(family)).filter(
+      (component): component is NonNullable<typeof component> =>
+        component !== undefined && (component.score > 0 || component.evidence.length > 0),
+    );
+  }, [comparedNeighbour]);
+
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        eyebrow={t('eyebrow')}
-        title={t('title')}
-        description={t('description')}
-        actions={
-          graph.nodes.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              {canSeed && (
-                <Button variant="secondary" onClick={handleSeed} loading={seeding}>
-                  {seeding ? t('seeding') : t('seedAction')}
-                </Button>
-              )}
+    <div className="eco-page">
+      {/* Deep Navy Hero Header */}
+      <section className="eco-hero" aria-labelledby="ecosystem-heading">
+        <div className="eco-hero-copy">
+          <p className="eco-kicker">
+            <span className="eco-kicker-bar" aria-hidden="true" />
+            {t('eyebrow')}
+          </p>
+          <h1 id="ecosystem-heading">{t('title')}</h1>
+          <p className="eco-hero-lead">{t('description')}</p>
+
+          {(canWrite || canAdmin || canSeed) && (
+            <div className="eco-hero-actions">
               {canWrite && (
-                <Button onClick={() => setAddOpen(true)} leadingIcon={<Plus className="size-4" />}>
+                <button
+                  type="button"
+                  className="eco-btn-hero-primary"
+                  onClick={() => setAddOpen(true)}
+                >
+                  <Plus className="size-4" aria-hidden="true" />
                   {t('emptyAdd')}
-                </Button>
+                </button>
+              )}
+              {canAdmin && graph.nodes.length > 0 && (
+                <button
+                  type="button"
+                  className="eco-btn-hero-secondary"
+                  onClick={handleRebuild}
+                  disabled={rebuilding}
+                >
+                  <RefreshCw
+                    className={`size-4 ${rebuilding ? 'animate-spin' : ''}`}
+                    aria-hidden="true"
+                  />
+                  {rebuilding ? t('refreshing') : t('refreshAction')}
+                </button>
+              )}
+              {canSeed && (
+                <button
+                  type="button"
+                  className="eco-btn-hero-secondary"
+                  onClick={handleSeed}
+                  disabled={seeding}
+                >
+                  <Sparkles className="size-4" aria-hidden="true" />
+                  {seeding ? t('seeding') : t('seedAction')}
+                </button>
               )}
             </div>
-          ) : undefined
-        }
-      />
+          )}
+        </div>
+
+        {/* 3-Metric Rail + Updated Stamp */}
+        <div className="eco-metrics-panel">
+          <div className="eco-metrics-rail">
+            <div className="eco-metric-cell">
+              <span className="eco-metric-value">{number.format(graph.nodes.length)}</span>
+              <span className="eco-metric-label">{t('metricCompanies')}</span>
+            </div>
+            <div className="eco-metric-cell">
+              <span className="eco-metric-value">{number.format(graph.edges.length)}</span>
+              <span className="eco-metric-label">{t('metricConnections')}</span>
+            </div>
+            <div className="eco-metric-cell">
+              <span className="eco-metric-value">{number.format(graph.groups.length)}</span>
+              <span className="eco-metric-label">{t('metricGroups')}</span>
+            </div>
+          </div>
+          <p className="eco-updated-stamp">
+            <Clock className="size-3.5" aria-hidden="true" />
+            {t('updatedStamp', { date: updatedAt })}
+          </p>
+        </div>
+      </section>
 
       {graph.nodes.length === 0 ? (
         <EmptyState
@@ -169,10 +357,14 @@ export function EcosystemContent({
           description={t('emptyDescription')}
           action={
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {canWrite && <Button onClick={() => setAddOpen(true)}>{t('emptyAdd')}</Button>}
+              {canWrite && (
+                <Button onClick={() => setAddOpen(true)} leadingIcon={<Plus className="size-4" />}>
+                  {t('emptyAdd')}
+                </Button>
+              )}
               {canSeed && (
                 <Button variant="secondary" onClick={handleSeed} loading={seeding}>
-                  {t('seedAction')}
+                  {seeding ? t('seeding') : t('seedAction')}
                 </Button>
               )}
             </div>
@@ -180,233 +372,352 @@ export function EcosystemContent({
         />
       ) : (
         <>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="max-w-md flex-1">
-              <SearchInput
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onClear={() => setQuery('')}
-                placeholder={t('searchPlaceholder')}
-                aria-label={t('searchPlaceholder')}
-              />
+          {/* Synced Filter Toolbar */}
+          <div className="eco-toolbar" role="search">
+            <div className="eco-toolbar-top">
+              <div className="eco-search-wrap">
+                <SearchInput
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onClear={() => setQuery('')}
+                  placeholder={t('searchPlaceholder')}
+                  aria-label={t('searchPlaceholder')}
+                />
+              </div>
+
+              <div className="eco-filter-status">
+                <span>
+                  {t('showingCount', {
+                    shown: number.format(filteredNodes.length),
+                    total: number.format(graph.nodes.length),
+                  })}
+                </span>
+                {filtersActive && (
+                  <button type="button" className="eco-reset-link" onClick={handleResetFilters}>
+                    <RotateCcw className="size-3.5" aria-hidden="true" />
+                    {t('resetFilters')}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-muted-body text-xs font-medium">{t('groupFilter')}</span>
-              <Pill selected={group === 'all'} onClick={() => setGroup('all')}>
-                {t('allGroups')}
-              </Pill>
-              {graph.groups.map((entry) => (
-                <Pill
-                  key={entry.id}
-                  selected={group === entry.id}
-                  onClick={() => setGroup(entry.id)}
-                >
-                  {entry.label}
-                </Pill>
-              ))}
+
+            <div className="eco-group-pills" role="group" aria-label={t('groupFilter')}>
+              <button
+                type="button"
+                className="eco-group-pill"
+                aria-pressed={group === 'all'}
+                onClick={() => setGroup('all')}
+              >
+                <span>{t('allGroups')}</span>
+                <span className="eco-group-count">{number.format(graph.nodes.length)}</span>
+              </button>
+              {graph.groups.map((entry) => {
+                const tone = groupTone(entry.id);
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className="eco-group-pill"
+                    aria-pressed={group === entry.id}
+                    onClick={() => setGroup(entry.id)}
+                  >
+                    <span
+                      className="eco-group-dot"
+                      style={{ backgroundColor: tone.dot }}
+                      aria-hidden="true"
+                    />
+                    <span>{entry.label}</span>
+                    <span className="eco-group-count">{number.format(entry.members)}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <Card className="overflow-hidden">
-              <div className="border-b border-[var(--border-subtle)] px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-muted-body text-xs font-medium">{t('legendTitle')}</p>
-                  <p className="text-muted-caption text-xs">{updatedAt}</p>
-                </div>
-                <p className="text-muted-body mt-2 text-xs">{t('graphHelp')}</p>
-                <div className="text-muted-body mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                  <span>{t('legendSharedTools')}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{t('legendSharedTopics')}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{t('legendSameIndustry')}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{t('legendSameList')}</span>
-                </div>
-              </div>
-              <CardContent className="p-2 sm:p-4">
-                <EcosystemGraphCanvas
-                  graph={graph}
-                  selectedId={selectedId}
-                  onSelect={setSelectedId}
-                  query={query}
-                  group={group}
-                />
-              </CardContent>
-            </Card>
+          {/* Studio Split: 10x Knowledge Graph + Visual Inspector Panel */}
+          <div className="eco-studio">
+            <EcosystemGraphCanvas
+              graph={graph}
+              selectedId={effectiveSelectedId}
+              comparedId={comparedNeighbour?.node.id ?? null}
+              filteredIds={filteredIds}
+              group={group}
+              focusRequest={focusRequest}
+              onSelect={handleSelectCompany}
+              onCompareEdge={handleCompareEdge}
+              onResetFilters={handleResetFilters}
+            />
 
-            <Card className="xl:sticky xl:top-4">
-              <CardContent className="flex flex-col gap-5">
-                {selected ? (
-                  <>
-                    <div className="flex flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="font-display text-ink text-lg font-bold tracking-[var(--tracking-display)]">
-                          {selected.name}
-                        </h2>
-                        {wellConnected && (
-                          <span
-                            className="bg-accent/10 text-accent-deep rounded-pill px-2 py-0.5 text-[11px] font-semibold"
-                            title={t('wellConnectedHint')}
-                          >
-                            {t('wellConnected')}
-                          </span>
-                        )}
+            <aside className="eco-inspector" aria-label={selected?.name ?? t('selectPromptTitle')}>
+              {selected ? (
+                <>
+                  {/* Selected Company Header */}
+                  <div className="eco-inspector-section">
+                    <div className="eco-inspector-header">
+                      <span
+                        className="eco-monogram-badge"
+                        style={{ backgroundColor: groupTone(selected.group).fill }}
+                        aria-hidden="true"
+                      >
+                        {companyMonogram(selected.name)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="eco-inspector-title-row">
+                          <h2 className="eco-inspector-title">{selected.name}</h2>
+                          {isKeyHub && (
+                            <span className="eco-hub-badge" title={t('wellConnectedHint')}>
+                              {t('wellConnected')}
+                            </span>
+                          )}
+                        </div>
+                        <p className="eco-inspector-meta">
+                          {selectedGroup?.label ?? `${t('group')} ${selected.group + 1}`}
+                          {selected.headcount
+                            ? ` · ${t('employees', { count: selected.headcount })}`
+                            : ''}
+                          {selected.hqCity ? ` · ${selected.hqCity}` : ''}
+                        </p>
                       </div>
-                      <p className="text-muted-body text-sm">
-                        {selectedGroup?.label ?? t('group')}
-                        {selected.headcount
-                          ? ` · ${t('employees', { count: selected.headcount })}`
-                          : ''}
-                        {selected.hqCity ? ` · ${selected.hqCity}` : ''}
-                      </p>
                     </div>
+                  </div>
 
-                    <div className="flex flex-col gap-2">
-                      <p className="text-muted-body text-xs font-semibold tracking-[var(--tracking-label)] uppercase">
-                        {t('closestAccounts')}
-                      </p>
-                      {selectedNeighbours.length ? (
-                        <ul className="flex flex-col gap-2">
-                          {selectedNeighbours.slice(0, 4).map((neighbour) => (
-                            <li key={neighbour.node.id}>
+                  {/* Closest Matches List */}
+                  <div className="eco-inspector-section">
+                    <p className="eco-section-label">{t('closestAccounts')}</p>
+                    {selectedNeighbours.length > 0 ? (
+                      <ul className="eco-matches-list">
+                        {selectedNeighbours.slice(0, 5).map((neighbour) => {
+                          const scorePct = Math.round(neighbour.score * 100);
+                          const isCompared = comparedNeighbour?.node.id === neighbour.node.id;
+                          return (
+                            <li
+                              key={neighbour.node.id}
+                              className={`eco-match-row ${isCompared ? 'eco-match-row--active' : ''}`}
+                            >
                               <button
                                 type="button"
-                                onClick={() => setSelectedId(neighbour.node.id)}
-                                className="hover:bg-canvas flex w-full items-center justify-between gap-3 rounded-md px-2 py-1.5 text-start"
+                                className="eco-match-select"
+                                aria-pressed={isCompared}
+                                onClick={() => setComparedId(neighbour.node.id)}
                               >
-                                <span className="text-ink truncate text-sm font-medium">
-                                  {neighbour.node.name}
+                                <span className="eco-match-select-top">
+                                  <span className="eco-match-name">{neighbour.node.name}</span>
+                                  <span className="eco-match-pct">
+                                    {t('match', { score: scorePct })}
+                                  </span>
                                 </span>
-                                <span className="text-muted-body text-xs tabular-nums">
-                                  {t('match', { score: Math.round(neighbour.score * 100) })}
+                                <span className="eco-bar-track" aria-hidden="true">
+                                  <span
+                                    className="eco-bar-fill block"
+                                    style={{ width: `${Math.max(4, scorePct)}%` }}
+                                  />
                                 </span>
                               </button>
+                              <button
+                                type="button"
+                                className="eco-focus-btn"
+                                onClick={() => handleFocusCompany(neighbour.node.id)}
+                                aria-label={t('focusCompany', { name: neighbour.node.name })}
+                                title={t('focusCompany', { name: neighbour.node.name })}
+                              >
+                                <Crosshair className="size-3.5" aria-hidden="true" />
+                              </button>
                             </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div className="flex flex-col gap-1 rounded-md border border-dashed border-[var(--border-default)] p-3">
-                          <p className="text-ink text-sm font-medium">{t('noNeighboursTitle')}</p>
-                          <p className="text-muted-body text-xs">{t('noNeighboursDescription')}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {closest && (
-                      <div className="flex flex-col gap-3">
-                        <p className="text-muted-body text-xs font-semibold tracking-[var(--tracking-label)] uppercase">
-                          {t('whatTheyShare')}
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <div className="mt-3 rounded-xl border border-dashed border-[var(--border-default)] p-3.5">
+                        <p className="text-ink text-sm font-semibold">{t('noNeighboursTitle')}</p>
+                        <p className="text-muted-body mt-1 text-xs">
+                          {t('noNeighboursDescription')}
                         </p>
-                        <p className="text-muted-body text-xs">
-                          {selected.name} ↔ {closest.node.name}
-                        </p>
-                        {evidenceFor(closest, 'technologies').length > 0 && (
-                          <EvidenceGroup
-                            label={t('tools')}
-                            values={evidenceFor(closest, 'technologies')}
-                          />
-                        )}
-                        {evidenceFor(closest, 'keywords').length > 0 && (
-                          <EvidenceGroup
-                            label={t('topics')}
-                            values={evidenceFor(closest, 'keywords')}
-                          />
-                        )}
-                        {evidenceFor(closest, 'industries').length > 0 && (
-                          <EvidenceGroup
-                            label={t('industry')}
-                            values={evidenceFor(closest, 'industries')}
-                          />
-                        )}
-                        {evidenceFor(closest, 'lists').length > 0 && (
-                          <EvidenceGroup
-                            label={t('lists')}
-                            values={evidenceFor(closest, 'lists')}
-                          />
-                        )}
                       </div>
                     )}
-
-                    <Link
-                      href={`/ecosystem/accounts/${selected.id}`}
-                      className="text-accent text-sm font-semibold hover:underline"
-                    >
-                      {t('openAccount')}
-                    </Link>
-                  </>
-                ) : (
-                  <div className="flex flex-col gap-2 py-8">
-                    <Users className="text-muted-tertiary size-6" aria-hidden="true" />
-                    <p className="text-ink text-sm font-semibold">{t('selectPromptTitle')}</p>
-                    <p className="text-muted-body text-sm">{t('selectPromptDescription')}</p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  {/* Why They Match (A ↔ B) */}
+                  {comparedNeighbour && (
+                    <div className="eco-inspector-section" data-why-match="true">
+                      <p className="eco-section-label">{t('whatTheyShare')}</p>
+                      <div className="eco-compare-head">
+                        <p className="eco-compare-pair">
+                          {selected.name} ↔ {comparedNeighbour.node.name}
+                        </p>
+                        <span className="eco-match-pct">
+                          {t('match', { score: Math.round(comparedNeighbour.score * 100) })}
+                        </span>
+                      </div>
+                      <div className="eco-signals-stack">
+                        {comparedSignals.map((component) => {
+                          const signalPct = Math.round(component.score * 100);
+                          return (
+                            <div key={component.family} className="eco-signal-row">
+                              <div className="eco-signal-row-head">
+                                <span>{t(familyLabelKey(component.family))}</span>
+                                <span className="eco-signal-row-pct">
+                                  {t('signalScore', { score: signalPct })}
+                                </span>
+                              </div>
+                              <div className="eco-bar-track" aria-hidden="true">
+                                <div
+                                  className="eco-bar-fill"
+                                  style={{ width: `${Math.max(3, signalPct)}%` }}
+                                />
+                              </div>
+                              {component.evidence.length > 0 && (
+                                <div className="eco-chips">
+                                  {component.evidence.map((item) => (
+                                    <span key={item} className="eco-chip">
+                                      {item}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* View Profile Footer CTA */}
+                  <Link
+                    href={`/ecosystem/accounts/${selected.id}`}
+                    className="eco-inspector-footer"
+                  >
+                    <span>{t('openAccount')}</span>
+                    <ArrowUpRight className="size-4 rtl:-scale-x-100" aria-hidden="true" />
+                  </Link>
+                </>
+              ) : (
+                <div className="eco-inspector-section flex flex-col gap-2 py-10">
+                  <Users className="text-muted-tertiary size-6" aria-hidden="true" />
+                  <p className="text-ink text-sm font-semibold">{t('selectPromptTitle')}</p>
+                  <p className="text-muted-body text-sm">{t('selectPromptDescription')}</p>
+                </div>
+              )}
+            </aside>
           </div>
 
-          <section className="flex flex-col gap-3" aria-labelledby="ecosystem-accounts-heading">
-            <h2
-              id="ecosystem-accounts-heading"
-              className="font-display text-ink text-lg font-bold tracking-[var(--tracking-display)]"
-            >
-              {t('accountListTitle')}
-            </h2>
-            <div className="bg-card overflow-x-auto rounded-lg border border-[var(--border-default)]">
-              <table className="font-body w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-canvas/60 border-b border-[var(--border-default)]">
-                    {[
-                      t('accountHeader'),
-                      t('groupHeader'),
-                      t('employeesHeader'),
-                      t('closestHeader'),
-                      t('matchHeader'),
-                    ].map((header) => (
-                      <th
-                        key={header}
-                        scope="col"
-                        className="text-muted-body px-4 py-3 text-start text-xs font-semibold tracking-[var(--tracking-label)] uppercase"
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {graph.nodes.map((node) => {
-                    const closestNeighbour = (neighboursByNode.get(node.id) ?? [])[0];
-                    return (
-                      <tr
-                        key={node.id}
-                        className="hover:bg-canvas/60 cursor-pointer border-b border-[var(--border-subtle)] last:border-0"
-                        onClick={() => setSelectedId(node.id)}
-                      >
-                        <td className="text-ink px-4 py-3 font-medium">{node.name}</td>
-                        <td className="text-muted-body px-4 py-3">
-                          {groupById.get(node.group)?.label ?? `${t('group')} ${node.group + 1}`}
-                        </td>
-                        <td className="text-muted-body px-4 py-3 tabular-nums">
-                          {node.headcount ? number.format(node.headcount) : '—'}
-                        </td>
-                        <td className="text-muted-body px-4 py-3">
-                          {closestNeighbour?.node.name ?? '—'}
-                        </td>
-                        <td className="text-muted-body px-4 py-3 tabular-nums">
-                          {closestNeighbour
-                            ? t('match', {
-                                score: Math.round(closestNeighbour.score * 100),
-                              })
-                            : '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          {/* Company Directory Table (synced with map filters) */}
+          <section className="eco-directory" aria-labelledby="ecosystem-accounts-heading">
+            <div className="eco-directory-header">
+              <h2 id="ecosystem-accounts-heading">{t('accountListTitle')}</h2>
+              <span className="eco-filter-status">
+                {t('showingCount', {
+                  shown: number.format(filteredNodes.length),
+                  total: number.format(graph.nodes.length),
+                })}
+              </span>
             </div>
+
+            {filteredNodes.length === 0 ? (
+              <div className="eco-empty-filter">
+                <h3>{t('noFilterMatchesTitle')}</h3>
+                <p>{t('noFilterMatchesDescription')}</p>
+                <Button variant="secondary" onClick={handleResetFilters} className="mt-2">
+                  {t('resetFilters')}
+                </Button>
+              </div>
+            ) : (
+              <div className="eco-table-wrap">
+                <table className="eco-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('accountHeader')}</th>
+                      <th scope="col">{t('groupHeader')}</th>
+                      <th scope="col">{t('employeesHeader')}</th>
+                      <th scope="col">{t('closestHeader')}</th>
+                      <th scope="col">{t('matchHeader')}</th>
+                      <th scope="col">{t('actionsHeader')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredNodes.map((node) => {
+                      const closestNeighbour = (neighboursByNode.get(node.id) ?? [])[0];
+                      const matchPct = closestNeighbour
+                        ? Math.round(closestNeighbour.score * 100)
+                        : null;
+                      const isRowSelected = node.id === effectiveSelectedId;
+                      const tone = groupTone(node.group);
+                      return (
+                        <tr
+                          key={node.id}
+                          className={isRowSelected ? 'eco-row-selected' : undefined}
+                          aria-selected={isRowSelected}
+                          data-selected={isRowSelected ? 'true' : 'false'}
+                          onClick={() => handleSelectCompany(node.id)}
+                        >
+                          <td>
+                            <div className="eco-table-company">
+                              <span
+                                className="eco-monogram-badge eco-monogram-badge--sm"
+                                style={{ backgroundColor: tone.fill }}
+                                aria-hidden="true"
+                              >
+                                {companyMonogram(node.name)}
+                              </span>
+                              <div>
+                                <span className="eco-table-company-name">{node.name}</span>
+                                {node.hqCity && (
+                                  <span className="eco-table-company-city">{node.hqCity}</span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="eco-table-group">
+                              <span
+                                className="eco-group-dot"
+                                style={{ backgroundColor: tone.dot }}
+                                aria-hidden="true"
+                              />
+                              {groupById.get(node.group)?.label ??
+                                `${t('group')} ${node.group + 1}`}
+                            </span>
+                          </td>
+                          <td className="text-muted-body tabular-nums">
+                            {node.headcount ? number.format(node.headcount) : '—'}
+                          </td>
+                          <td className="text-muted-body">{closestNeighbour?.node.name ?? '—'}</td>
+                          <td>
+                            {matchPct !== null ? (
+                              <div className="eco-inline-match">
+                                <div className="eco-bar-track" aria-hidden="true">
+                                  <div
+                                    className="eco-bar-fill"
+                                    style={{ width: `${Math.max(4, matchPct)}%` }}
+                                  />
+                                </div>
+                                <span className="eco-match-pct">
+                                  {t('signalScore', { score: matchPct })}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-body">—</span>
+                            )}
+                          </td>
+                          <td>
+                            <Link
+                              href={`/ecosystem/accounts/${node.id}`}
+                              className="eco-profile-link"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              {t('openAccount')}
+                              <ArrowUpRight
+                                className="size-3.5 rtl:-scale-x-100"
+                                aria-hidden="true"
+                              />
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           <p className="text-muted-caption max-w-3xl text-xs">{t('note')}</p>
@@ -418,27 +729,15 @@ export function EcosystemContent({
           open={addOpen}
           onOpenChange={setAddOpen}
           tenantId={tenantId}
-          onAdded={() => router.refresh()}
+          onAdded={(createdId) => {
+            if (createdId) {
+              setSelectedId(createdId);
+              setComparedId(null);
+            }
+            router.refresh();
+          }}
         />
       )}
-    </div>
-  );
-}
-
-function EvidenceGroup({ label, values }: { label: string; values: string[] }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <p className="text-muted-caption text-[11px] font-medium">{label}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {values.map((value) => (
-          <span
-            key={value}
-            className="bg-canvas text-muted-body rounded-pill border border-[var(--border-subtle)] px-2 py-0.5 text-[11px]"
-          >
-            {value}
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
@@ -452,7 +751,7 @@ function AddAccountDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tenantId: string;
-  onAdded: () => void;
+  onAdded: (createdId?: string) => void;
 }) {
   const t = useTranslations('ecosystem');
   const { toast } = useToast();
@@ -480,7 +779,7 @@ function AddAccountDialog({
     setSaving(true);
     setError(null);
     try {
-      await createAccount(tenantId, {
+      const response = await createAccount(tenantId, {
         name: form.name.trim(),
         domain: form.domain.trim() || undefined,
         headcount: form.headcount ? Number(form.headcount) : undefined,
@@ -509,7 +808,7 @@ function AddAccountDialog({
         lists: '',
       });
       onOpenChange(false);
-      onAdded();
+      onAdded(response?.account?.id);
     } catch (caught) {
       if (caught instanceof ApiError && caught.body.code === 'CONFLICT') {
         setError(t('conflictError'));
