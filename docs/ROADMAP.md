@@ -302,7 +302,7 @@ CSV Import already established for onboarding.
     (Draft → Submitted → Evidence Check → Eligibility Review → Attribution
     Review → Approved/Rejected → Disputed → Closed, Table 13) is FLOW-C's
     spine: submit with evidence-completeness check (CLM-03), select the
-    rule version effective on the *event* date per INV-007 (not the
+    rule version effective on the _event_ date per INV-007 (not the
     current rule version — a historical-reproduction requirement, T-012),
     calculate explainable eligibility with no silent default to eligible
     (CLM-05), allocate `Attribution` shares that reconcile to the
@@ -350,12 +350,13 @@ CSV Import already established for onboarding.
     per-object capability, SHR-04). Calendar/Teams links, richer reporting
     and controlled templates (all explicitly R1.1) are this item's own
     scope, not item 16's — they're presentation/collaboration surface
-    built *on* the grant mechanism, not part of authorizing it.
+    built _on_ the grant mechanism, not part of authorizing it.
 
 ## Phase 7 — Ecosystem
 
-18. **Ecosystem graph** — the account graph from the `ACCOUNT_GRAPH.md`
-    research spike, made a product surface. **Accounts and graph built**;
+18. **Ecosystem graph** — the account graph from the
+    [`ECOSYSTEM_GRAPH.md`](./ecosystem-graph/ECOSYSTEM_GRAPH.md) research
+    architecture, made a product surface. **Accounts and graph built**;
     import, contacts and the partner overlay are the next slices. A new
     `Account` source table in `portfolio` (customer/prospect companies,
     distinct from `Partner`), a derived `AccountSimilarityEdge` read model
