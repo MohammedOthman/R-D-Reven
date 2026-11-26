@@ -277,7 +277,7 @@ describe('Ecosystem studio experience', () => {
       />,
     );
 
-    const svg = screen.getByRole('img', { name: 'Company ecosystem map' });
+    const svg = screen.getByRole('group', { name: 'Company ecosystem map' });
     expect(svg).toHaveAttribute('data-lens', 'focus');
 
     // Focus lens marks 2-step warm bridge path (Jeddah Commerce -> Khobar Freight)

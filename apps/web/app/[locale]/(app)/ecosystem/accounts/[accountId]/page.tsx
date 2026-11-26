@@ -7,6 +7,7 @@ import { getEcosystemAccount } from '@/src/lib/ecosystem/session';
 import type { FeatureFamily } from '@/src/lib/ecosystem/types';
 import {
   FEATURE_FAMILIES,
+  NEUTRAL_TONE,
   companyMonogram,
   groupTone,
 } from '@/src/components/ecosystem/ecosystem-visuals';
@@ -76,7 +77,7 @@ export default async function EcosystemAccountPage({
   const number = new Intl.NumberFormat(locale);
   const account = detail.account;
 
-  const tone = groupTone(detail.group?.id ?? 0);
+  const tone = detail.group ? groupTone(detail.group.id) : NEUTRAL_TONE;
   const location = [account.hqCity, account.hqCountry].filter(Boolean).join(', ');
   const teamSize = account.headcount ? number.format(account.headcount) : '';
   const domainsAndRevenue = [account.domains.join(', '), account.revenue]
@@ -194,7 +195,7 @@ export default async function EcosystemAccountPage({
                         <div className="flex items-center gap-2.5">
                           <span
                             className="eco-monogram-badge eco-monogram-badge--sm"
-                            style={{ backgroundColor: '#2C5BFF' }}
+                            style={{ backgroundColor: NEUTRAL_TONE.fill }}
                             aria-hidden="true"
                           >
                             {companyMonogram(neighbour.name)}

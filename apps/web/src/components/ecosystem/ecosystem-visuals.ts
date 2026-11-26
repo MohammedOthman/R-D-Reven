@@ -21,6 +21,14 @@ export const GROUP_PALETTE: readonly GroupTone[] = [
   { fill: '#334155', dot: '#0F1629', ring: '#64748B', territory: '#475569' },
 ];
 
+/** Neutral slate tone for companies with no known group, so they never read as group 0. */
+export const NEUTRAL_TONE: GroupTone = {
+  fill: '#6B7180',
+  dot: '#6B7180',
+  ring: '#94A3B8',
+  territory: '#94A3B8',
+};
+
 export function groupTone(groupId: number): GroupTone {
   const index = Math.abs(groupId) % GROUP_PALETTE.length;
   return GROUP_PALETTE[index] ?? GROUP_PALETTE[0]!;

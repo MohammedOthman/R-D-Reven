@@ -140,12 +140,6 @@ export function EcosystemContent({
     return map;
   }, [graph.edges, nodeById]);
 
-  // Selection fallback: auto-select first company if workspace was previously empty or selection disappeared
-  const effectiveSelectedId = useMemo(() => {
-    if (selectedId && nodeById.has(selectedId)) return selectedId;
-    return graph.nodes[0]?.id ?? null;
-  }, [selectedId, nodeById, graph.nodes]);
-
   // Synced filter across map & directory table: search by company name, city, or group label + group pill
   const normalizedQuery = query.trim().toLowerCase();
   const filteredNodes = useMemo(() => {
@@ -163,6 +157,13 @@ export function EcosystemContent({
   }, [graph.nodes, group, normalizedQuery, groupById]);
 
   const filteredIds = useMemo(() => new Set(filteredNodes.map((node) => node.id)), [filteredNodes]);
+
+  // Selection fallback: when the workspace was empty, or the selection disappeared or left the
+  // active filter, select the first company the filter still shows.
+  const effectiveSelectedId = useMemo(() => {
+    if (selectedId && nodeById.has(selectedId) && filteredIds.has(selectedId)) return selectedId;
+    return filteredNodes[0]?.id ?? null;
+  }, [selectedId, nodeById, filteredIds, filteredNodes]);
 
   const filtersActive = normalizedQuery.length > 0 || group !== 'all';
 
@@ -286,7 +287,7 @@ export function EcosystemContent({
           <h1 id="ecosystem-heading">{t('title')}</h1>
           <p className="eco-hero-lead">{t('description')}</p>
 
-          {(canWrite || canAdmin || canSeed) && (
+          {graph.nodes.length > 0 && (canWrite || canAdmin || canSeed) && (
             <div className="eco-hero-actions">
               {canWrite && (
                 <button
@@ -645,7 +646,6 @@ export function EcosystemContent({
                         <tr
                           key={node.id}
                           className={isRowSelected ? 'eco-row-selected' : undefined}
-                          aria-selected={isRowSelected}
                           data-selected={isRowSelected ? 'true' : 'false'}
                           onClick={() => handleSelectCompany(node.id)}
                         >
@@ -659,7 +659,17 @@ export function EcosystemContent({
                                 {companyMonogram(node.name)}
                               </span>
                               <div>
-                                <span className="eco-table-company-name">{node.name}</span>
+                                <button
+                                  type="button"
+                                  className="eco-table-company-name text-start"
+                                  aria-pressed={isRowSelected}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleSelectCompany(node.id);
+                                  }}
+                                >
+                                  {node.name}
+                                </button>
                                 {node.hqCity && (
                                   <span className="eco-table-company-city">{node.hqCity}</span>
                                 )}

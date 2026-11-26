@@ -63,6 +63,23 @@ function arcGeometry(x1: number, y1: number, x2: number, y2: number, key: string
   };
 }
 
+const NO_DRAGGED_POSITIONS: Record<string, { x: number; y: number }> = {};
+
+/**
+ * Map between client pixels and viewBox units for an SVG using the default
+ * preserveAspectRatio (xMidYMid meet). When CSS min-height makes the element taller
+ * than the viewBox aspect, the drawing sits in a centred band, so a plain
+ * rect-relative ratio would drift vertically.
+ */
+function viewportFit(rect: { width: number; height: number }, view: ViewBox) {
+  const scale = Math.min(rect.width / view.w, rect.height / view.h);
+  return {
+    scale,
+    offsetX: (rect.width - view.w * scale) / 2,
+    offsetY: (rect.height - view.h * scale) / 2,
+  };
+}
+
 function subscribeReducedMotion(callback: () => void) {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
   const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -111,10 +128,21 @@ export function EcosystemGraphCanvas({
   const [view, setView] = useState<ViewBox>(DEFAULT_VIEW);
   const [lens, setLens] = useState<GraphLens>('focus');
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [hoveredEdgeKey, setHoveredEdgeKey] = useState<string | null>(null);
-  const [draggedPositions, setDraggedPositions] = useState<
-    Record<string, { x: number; y: number }>
-  >({});
+  // Hover is tied to the filter it was set under, so an arc whose hit path unmounted
+  // mid-hover (no mouseleave) does not come back highlighted after the filter changes.
+  const [hoveredEdge, setHoveredEdge] = useState<{
+    key: string;
+    ids: ReadonlySet<string>;
+  } | null>(null);
+  const hoveredEdgeKey = hoveredEdge && hoveredEdge.ids === filteredIds ? hoveredEdge.key : null;
+  // Dragged positions belong to one graph build; a rebuild or seed resets them.
+  const graphVersion = graph.provenance.refreshedAt;
+  const [dragState, setDragState] = useState<{
+    version: string;
+    positions: Record<string, { x: number; y: number }>;
+  }>({ version: graphVersion, positions: {} });
+  const draggedPositions =
+    dragState.version === graphVersion ? dragState.positions : NO_DRAGGED_POSITIONS;
 
   const panDrag = useRef<{
     pointerX: number;
@@ -132,6 +160,18 @@ export function EcosystemGraphCanvas({
     startY: number;
     moved: boolean;
   } | null>(null);
+
+  // Rendered SVG size, used to place the hover card inside the letterboxed drawing band
+  const [svgSize, setSvgSize] = useState<{ width: number; height: number } | null>(null);
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setSvgSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Keep viewRef synced for smooth rAF camera transitions
   useEffect(() => {
@@ -387,12 +427,19 @@ export function EcosystemGraphCanvas({
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
       cancelAnimation();
-      const rect = el.getBoundingClientRect();
+      const rect = (svgRef.current ?? el).getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      const relX = (event.clientX - rect.left) / rect.width;
-      const relY = (event.clientY - rect.top) / rect.height;
       const factor = event.deltaY < 0 ? 1.16 : 0.86;
       setView((current) => {
+        const fit = viewportFit(rect, current);
+        const relX = Math.min(
+          1,
+          Math.max(0, (event.clientX - rect.left - fit.offsetX) / (current.w * fit.scale)),
+        );
+        const relY = Math.min(
+          1,
+          Math.max(0, (event.clientY - rect.top - fit.offsetY) / (current.h * fit.scale)),
+        );
         const nextW = Math.min(MAX_VIEW_W, Math.max(MIN_VIEW_W, current.w / factor));
         const nextH = (nextW / WIDTH) * HEIGHT;
         const anchorX = current.x + relX * current.w;
@@ -484,9 +531,12 @@ export function EcosystemGraphCanvas({
         const nextX = Math.min(WIDTH - 40, Math.max(40, nodeDrag.current.startX + dxPx * scale));
         const nextY = Math.min(HEIGHT - 40, Math.max(40, nodeDrag.current.startY + dyPx * scale));
         const draggedId = nodeDrag.current.id;
-        setDraggedPositions((prev) => ({
-          ...prev,
-          [draggedId]: { x: nextX, y: nextY },
+        setDragState((prev) => ({
+          version: graphVersion,
+          positions: {
+            ...(prev.version === graphVersion ? prev.positions : {}),
+            [draggedId]: { x: nextX, y: nextY },
+          },
         }));
       }
       return;
@@ -590,8 +640,13 @@ export function EcosystemGraphCanvas({
     const node = nodeById.get(hoveredNodeId);
     if (!node) return null;
     const pt = positionOf(node);
-    const relX = (pt.x - view.x) / view.w;
-    const relY = (pt.y - view.y) / view.h;
+    let relX = (pt.x - view.x) / view.w;
+    let relY = (pt.y - view.y) / view.h;
+    if (svgSize && svgSize.width && svgSize.height) {
+      const fit = viewportFit(svgSize, view);
+      relX = (fit.offsetX + (pt.x - view.x) * fit.scale) / svgSize.width;
+      relY = (fit.offsetY + (pt.y - view.y) * fit.scale) / svgSize.height;
+    }
     const leftPct = Math.min(72, Math.max(4, relX * 100 + (relX > 0.65 ? -26 : 3)));
     const topPct = Math.min(72, Math.max(12, relY * 100 - 8));
     const directEdge = selectedReach.direct.get(node.id);
@@ -608,7 +663,7 @@ export function EcosystemGraphCanvas({
       groupLabel: groupEntry?.label ?? `${t('group')} ${node.group + 1}`,
       tone: groupTone(node.group),
     };
-  }, [hoveredNodeId, nodeById, positionOf, view, selectedReach, adjacency, groupById, t]);
+  }, [hoveredNodeId, nodeById, positionOf, view, svgSize, selectedReach, adjacency, groupById, t]);
 
   const isZoomedIn = view.w < WIDTH * 0.92;
   const noMatches = graph.nodes.length > 0 && filteredIds.size === 0;
@@ -683,7 +738,7 @@ export function EcosystemGraphCanvas({
           ref={svgRef}
           viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
           className="eco-stage-svg"
-          role="img"
+          role="group"
           aria-label={t('graphLabel')}
           data-lens={lens}
           onPointerDown={handleSvgPointerDown}
@@ -861,14 +916,16 @@ export function EcosystemGraphCanvas({
                         className="cursor-pointer outline-none"
                         data-edge={key}
                         role="button"
-                        tabIndex={0}
+                        tabIndex={-1}
                         aria-label={t('inspectConnection', {
                           source: source.name,
                           target: target.name,
                           score: scorePct,
                         })}
-                        onMouseEnter={() => setHoveredEdgeKey(key)}
-                        onMouseLeave={() => setHoveredEdgeKey(null)}
+                        onMouseEnter={() => setHoveredEdge({ key, ids: filteredIds })}
+                        onMouseLeave={() => setHoveredEdge(null)}
+                        onFocus={() => setHoveredEdge({ key, ids: filteredIds })}
+                        onBlur={() => setHoveredEdge(null)}
                         onClick={(event) => {
                           event.stopPropagation();
                           onCompareEdge(edge.source, edge.target);
@@ -927,16 +984,20 @@ export function EcosystemGraphCanvas({
                   className="eco-node-group"
                   opacity={dimmed ? 0.22 : subtleBridge ? 0.78 : 1}
                   role="button"
-                  tabIndex={0}
+                  tabIndex={isVisible ? 0 : -1}
                   aria-label={ariaLabel}
                   aria-pressed={isSelected}
-                  onPointerDown={(event) => handleNodePointerDown(event, node)}
+                  aria-disabled={isVisible ? undefined : true}
+                  pointerEvents={isVisible ? undefined : 'none'}
+                  onPointerDown={(event) => {
+                    if (isVisible) handleNodePointerDown(event, node);
+                  }}
                   onClick={(event) => {
                     // Keyboard/programmatic clicks (mouse clicks are handled on pointerUp when not dragging)
-                    if (event.detail === 0) onSelect(node.id);
+                    if (isVisible && event.detail === 0) onSelect(node.id);
                   }}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
+                    if (isVisible && (event.key === 'Enter' || event.key === ' ')) {
                       event.preventDefault();
                       onSelect(node.id);
                     }
